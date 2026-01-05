@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zappy Content Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fffbf7;
+            /* Warm light cream */
+            --accent: #f97316;
+            /* Vibrant Orange */
+            --accent-hover: #ea580c;
+            --brown: #431407;
+            /* Deep Brown */
+            --panel: rgba(255, 255, 255, 0.8);
+            --border: rgba(67, 20, 7, 0.08);
+            --text-main: #1c1917;
+            --text-muted: #78716c;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(249, 115, 22, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(67, 20, 7, 0.03) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .glass {
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 20px -5px rgba(67, 20, 7, 0.05);
+        }
+
+        .terminal {
+            font-family: 'JetBrains Mono', monospace;
+            background: #1c1917;
+            /* Keep terminal dark for contrast, but sleek */
+            color: #fce7d2;
+            border-radius: 1rem;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            border: 1px solid var(--border);
+            color: var(--brown);
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #fffaf5;
+            border-color: var(--accent);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-idle {
+            background-color: #94a3b8;
+        }
+
+        .status-running {
+            background-color: #f97316;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(67, 20, 7, 0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(67, 20, 7, 0.2);
+        }
+
+        input {
+            color: var(--text-main) !important;
+        }
+
+        ::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight mb-1 text-stone-900">Zappy <span
+                        class="text-[#f97316]">Engine</span></h1>
+                <p class="text-stone-500 text-sm font-light">Multi-Agent Content Orchestration v2.0</p>
+            </div>
+            <div id="status-container"
+                class="flex items-center px-4 py-2 bg-white/50 rounded-full border border-stone-200">
+                <span id="status-dot" class="status-dot status-idle"></span>
+                <span id="status-text" class="text-xs uppercase tracking-widest font-bold text-stone-400">System
+                    Idle</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Controls -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Single Generate Panel -->
+                <div class="glass p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center text-stone-900">
+                        <svg class="w-5 h-5 mr-2 text-[#f97316]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                            </path>
+                        </svg>
+                        Single Generation
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label
+                                class="text-[10px] text-stone-500 uppercase font-bold tracking-wider mb-2 block">Target
+                                Keyword</label>
+                            <input type="text" id="keyword-input" placeholder="e.g. semaglutide for PCOS"
+                                class="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#f97316]/50 transition-colors">
+                        </div>
+                        <button id="btn-generate" class="btn-primary w-full py-3 rounded-xl font-semibold text-sm">
+                            Generate Article
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Keyword Seeding Panel -->
+                <div class="glass p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center text-stone-900">
+                        <svg class="w-5 h-5 mr-2 text-[#f97316]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Keyword Seeding
+                    </h2>
+                    <p class="text-sm text-stone-500 mb-4 font-light">Auto-generate and queue 10 keywords for a broad
+                        topic.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <input type="text" id="seed-topic-input" placeholder="e.g. Weight Loss Meds"
+                                class="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#f97316]/50 transition-colors">
+                        </div>
+                        <button id="btn-seed" class="btn-secondary w-full py-3 rounded-xl font-semibold text-sm">
+                            Research & Seed
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Batch Actions Panel -->
+                <div class="glass p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center text-stone-900">
+                        <svg class="w-5 h-5 mr-2 text-[#f97316]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
+                        Batch Actions
+                    </h2>
+                    <p class="text-sm text-stone-500 mb-6 font-light">Processes all records with status <span
+                            class="text-orange-900 italic font-medium">"queued"</span>.</p>
+                    <div class="space-y-3">
+                        <button id="btn-batch"
+                            class="btn-secondary w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center">
+                            Run Batch (10 items)
+                        </button>
+                        <button id="btn-test"
+                            class="btn-secondary w-full py-3 rounded-xl font-semibold text-sm opacity-60">
+                            Dry Run (Test Mode)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency Stop -->
+                <button id="btn-stop"
+                    class="w-full py-3 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors hidden">
+                    Stop Current Process
+                </button>
+            </div>
+
+            <!-- Output/Terminal -->
+            <div class="lg:col-span-2 text-white">
+                <!-- Progress Indicator -->
+                <div id="progress-container" class="mb-6 opacity-0 translate-y-2 transition-all duration-500">
+                    <div class="flex justify-between items-end mb-2">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-[#f97316] mb-1">Current
+                                Intelligence Phase</span>
+                            <span id="progress-step" class="text-stone-900 font-bold text-lg">Initializing...</span>
+                        </div>
+                        <span id="progress-percent" class="text-[#f97316] font-bold text-2xl Outfit italic">0%</span>
+                    </div>
+                    <div
+                        class="w-full h-3 bg-stone-200 rounded-full overflow-hidden border border-stone-300/50 shadow-inner">
+                        <div id="progress-bar"
+                            class="h-full bg-gradient-to-r from-[#f97316] to-[#ea580c] transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                            style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="glass h-[600px] flex flex-col overflow-hidden border-orange-200/20 bg-white/40">
+                    <div class="px-6 py-4 border-b border-stone-200 flex justify-between items-center bg-white/50">
+                        <span class="text-xs font-bold uppercase tracking-widest text-[#f97316]">Runtime Logs</span>
+                        <button id="btn-clear"
+                            class="text-xs text-stone-500 hover:text-stone-900 transition-colors font-medium">Clear
+                            Console</button>
+                    </div>
+                    <div id="terminal" class="terminal flex-1 p-6 overflow-y-auto text-sm leading-relaxed">
+                        <div class="text-stone-400 italic mb-2">// System ready. Waiting for command...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const terminal = document.getElementById('terminal');
+        const btnGenerate = document.getElementById('btn-generate');
+        const btnBatch = document.getElementById('btn-batch');
+        const btnTest = document.getElementById('btn-test');
+        const btnSeed = document.getElementById('btn-seed');
+        const btnStop = document.getElementById('btn-stop');
+        const btnClear = document.getElementById('btn-clear');
+        const keywordInput = document.getElementById('keyword-input');
+        const seedTopicInput = document.getElementById('seed-topic-input');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressStep = document.getElementById('progress-step');
+        const progressPercent = document.getElementById('progress-percent');
+
+        function updateProgress(percent, step) {
+            progressContainer.classList.remove('opacity-0', 'translate-y-2');
+            progressBar.style.width = percent + '%';
+            progressStep.innerText = step;
+            progressPercent.innerText = percent + '%';
+        }
+
+        function resetProgress() {
+            progressContainer.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => {
+                progressBar.style.width = '0%';
+                progressStep.innerText = 'Initializing...';
+                progressPercent.innerText = '0%';
+            }, 500);
+        }
+
+        function appendToTerminal(text) {
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                if (!line.trim()) return;
+
+                // Check for progress markers
+                if (line.includes('REPORT_PROGRESS:')) {
+                    const parts = line.split('REPORT_PROGRESS:')[1].trim().split('|');
+                    if (parts.length === 2) {
+                        updateProgress(parts[0], parts[1]);
+                        return;
+                    }
+                }
+
+                const span = document.createElement('div');
+                let cleanLine = line.replace(/\\x1b\\[[0-9;]*m/g, '').trim();
+                span.className = 'mb-1';
+
+                if (cleanLine.includes('✅') || cleanLine.toLowerCase().includes('complete')) span.classList.add('text-green-400');
+                if (cleanLine.includes('❌') || cleanLine.toLowerCase().includes('error')) span.classList.add('text-red-400');
+                if (cleanLine.includes('⚠️')) span.classList.add('text-yellow-400');
+                if (cleanLine.includes('PHASE')) span.className = 'text-orange-300 font-bold mt-4 mb-2 border-l-2 border-orange-500 pl-3';
+
+                span.textContent = cleanLine;
+                terminal.appendChild(span);
+            });
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        socket.on('output', (data) => {
+            appendToTerminal(data);
+        });
+
+        socket.on('status', (status) => {
+            if (status === 'running') {
+                statusDot.className = 'status-dot status-running';
+                statusText.innerText = 'Engine Active';
+                statusText.classList.remove('text-stone-400');
+                statusText.classList.add('text-orange-600');
+                btnStop.classList.remove('hidden');
+                document.querySelectorAll('button:not(#btn-stop, #btn-clear)').forEach(b => {
+                    b.disabled = true;
+                    b.style.opacity = '0.5';
+                });
+            } else {
+                statusDot.className = 'status-dot status-idle';
+                statusText.innerText = 'System Idle';
+                statusText.classList.add('text-stone-400');
+                statusText.classList.remove('text-orange-600');
+                btnStop.classList.add('hidden');
+                document.querySelectorAll('button').forEach(b => {
+                    b.disabled = false;
+                    b.style.opacity = '1';
+                });
+                // Optional: resetProgress() on idle if code was 0 or success
+            }
+        });
+
+        btnGenerate.onclick = () => {
+            const keyword = keywordInput.value.trim();
+            if (!keyword) return alert('Enter a keyword');
+            terminal.innerHTML = '';
+            resetProgress();
+            socket.emit('run-command', { command: 'generate', args: [keyword] });
+        };
+
+        btnBatch.onclick = () => {
+            terminal.innerHTML = '';
+            resetProgress();
+            socket.emit('run-command', { command: 'batch', args: ['--batch'] });
+        };
+
+        btnTest.onclick = () => {
+            terminal.innerHTML = '';
+            resetProgress();
+            socket.emit('run-command', { command: 'test', args: ['--test'] });
+        };
+
+        btnSeed.onclick = () => {
+            const topic = seedTopicInput.value.trim();
+            if (!topic) return alert('Enter a topic to research');
+            terminal.innerHTML = '';
+            resetProgress();
+            socket.emit('seed-keywords', { topic });
+        };
+
+        btnStop.onclick = () => {
+            socket.emit('stop-command');
+        };
+
+        btnClear.onclick = () => {
+            terminal.innerHTML = '';
+        };
+
+        // Handle Enter key on input
+        keywordInput.onkeypress = (e) => {
+            if (e.key === 'Enter' && !btnGenerate.disabled) {
+                btnGenerate.click();
+            }
+        };
+    </script>
+</body>
+
+</html>
