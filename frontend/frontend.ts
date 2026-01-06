@@ -40,3 +40,17 @@ export const home = api.raw(
         res.end();
     }
 );
+// Serve the favicon
+export const favicon = api.raw(
+    { expose: true, method: "GET", path: "/ui/favicon.svg" },
+    async (req, res) => {
+        try {
+            const svg = await readFile(join(process.cwd(), "frontend", "favicon.svg"), "utf-8");
+            res.writeHead(200, { "Content-Type": "image/svg+xml" });
+            res.end(svg);
+        } catch (error) {
+            res.writeHead(404, { "Content-Type": "text/plain" });
+            res.end("Favicon not found");
+        }
+    }
+);

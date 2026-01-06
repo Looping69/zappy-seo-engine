@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F97316" />
+      <stop offset="100%" style="stop-color:#EA580C" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Square -->
+  <rect width="32" height="32" rx="8" fill="url(#brandGradient)" />
+  <!-- Stylized 'Z' with a medical pulse pulse-line hint -->
+  <path d="M9 8h14l-11 16h11" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  <!-- Small medical plus hint in corner -->
+  <rect x="22" y="6" width="6" height="2" rx="1" fill="white" opacity="0.8" />
+  <rect x="24" y="4" width="2" height="6" rx="1" fill="white" opacity="0.8" />
+</svg>
