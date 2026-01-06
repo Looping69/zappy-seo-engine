@@ -1,4 +1,9 @@
 {
 	"id": "zappy-seo-engine-r64i",
-	"lang": "typescript"
+	"lang": "typescript",
+	"global_cors": {
+		"allow_origin_regex": [
+			".*"
+		]
+	}
 }

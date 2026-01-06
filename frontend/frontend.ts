@@ -2,12 +2,19 @@ import { api } from "encore.dev/api";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-// Serve the dashboard HTML using raw endpoint
+// Serve the built React app static assets
+export const assets = api.static({
+    expose: true,
+    path: "/assets",
+    dir: "./web/dist/assets"
+});
+
+// Serve the dashboard (React App Entry)
 export const dashboard = api.raw(
-    { expose: true, method: "GET", path: "/ui" },
+    { expose: true, method: "GET", path: "/ui/*path" },
     async (req, res) => {
         try {
-            const html = await readFile(join(process.cwd(), "public", "index.html"), "utf-8");
+            const html = await readFile(join(process.cwd(), "web", "dist", "index.html"), "utf-8");
             res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
             res.end(html);
         } catch (error) {
@@ -17,40 +24,11 @@ export const dashboard = api.raw(
     }
 );
 
-// Serve the swarm visualizer HTML using raw endpoint
-export const swarm = api.raw(
-    { expose: true, method: "GET", path: "/ui/swarm.html" },
-    async (req, res) => {
-        try {
-            const html = await readFile(join(process.cwd(), "public", "swarm.html"), "utf-8");
-            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-            res.end(html);
-        } catch (error) {
-            res.writeHead(500, { "Content-Type": "text/plain" });
-            res.end("Error loading swarm visualizer");
-        }
-    }
-);
-
 // Redirect root to dashboard
 export const home = api.raw(
     { expose: true, method: "GET", path: "/" },
     async (req, res) => {
-        res.writeHead(302, { "Location": "/ui" });
+        res.writeHead(302, { "Location": "/ui/" });
         res.end();
-    }
-);
-// Serve the favicon
-export const favicon = api.raw(
-    { expose: true, method: "GET", path: "/ui/favicon.svg" },
-    async (req, res) => {
-        try {
-            const svg = await readFile(join(process.cwd(), "public", "favicon.svg"), "utf-8");
-            res.writeHead(200, { "Content-Type": "image/svg+xml" });
-            res.end(svg);
-        } catch (error) {
-            res.writeHead(404, { "Content-Type": "text/plain" });
-            res.end("Favicon not found");
-        }
     }
 );
