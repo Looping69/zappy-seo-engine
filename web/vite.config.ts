@@ -5,8 +5,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
     plugins: [react()],
     build: {
-        outDir: '../frontend/dist',
-        emptyOutDir: true
+        outDir: 'dist',
+        emptyOutDir: true,
+        chunkSizeWarningLimit: 1000
+    },
+    define: {
+        'process.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE)
     },
     server: {
         proxy: {
