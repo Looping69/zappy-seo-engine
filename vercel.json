@@ -1,0 +1,34 @@
+{
+    "version": 2,
+    "cleanUrls": true,
+    "rewrites": [
+        {
+            "source": "/keywords(.*)",
+            "destination": "https://zappy-seo-engine-r64i.encoreapi.com/keywords$1"
+        },
+        {
+            "source": "/content(.*)",
+            "destination": "https://zappy-seo-engine-r64i.encoreapi.com/content$1"
+        },
+        {
+            "source": "/orchestrator(.*)",
+            "destination": "https://zappy-seo-engine-r64i.encoreapi.com/orchestrator$1"
+        },
+        {
+            "source": "/ui/swarm",
+            "destination": "/frontend/swarm.html"
+        },
+        {
+            "source": "/ui/favicon.svg",
+            "destination": "/frontend/favicon.svg"
+        },
+        {
+            "source": "/",
+            "destination": "/frontend/index.html"
+        },
+        {
+            "source": "/ui/(.*)",
+            "destination": "/frontend/$1"
+        }
+    ]
+}
