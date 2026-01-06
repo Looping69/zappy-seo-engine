@@ -3,7 +3,7 @@
 // ============================================================================
 
 export interface Keyword {
-  id: string;
+  id: number;
   keyword: string;
   searchVolume?: number;
   difficulty?: number;
@@ -110,35 +110,36 @@ export interface FinalArticle {
   schema_markup: object;
   quality_score: number;
   iterations: number;
+  total_tokens?: number;
 }
 
 // Pipeline state (passed through orchestrator)
 export interface PipelineState {
   keyword: Keyword;
   status: "researching" | "synthesizing" | "drafting" | "critiquing" | "revising" | "finalizing" | "complete" | "failed";
-  
+
   // Research phase
   seoResearch?: SEOResearch;
   medicalResearch?: MedicalResearch;
   competitorResearch?: CompetitorResearch;
   synthesizedResearch?: SynthesizedResearch;
-  
+
   // Drafting phase
   drafts?: ArticleDraft[];
   selectedDraft?: ArticleDraft;
-  
+
   // Critique phase
   medicalCritique?: MedicalCritique;
   editorialCritique?: EditorialCritique;
-  
+
   // Revision tracking
   currentDraft?: ArticleDraft;
   revisionCount: number;
   maxRevisions: number;
-  
+
   // Final output
   finalArticle?: FinalArticle;
-  
+
   // Metadata
   startedAt: Date;
   completedAt?: Date;
@@ -152,4 +153,7 @@ export interface AgentResult<T> {
   data?: T;
   error?: string;
   reasoning?: string;
+  usage?: {
+    total_tokens: number;
+  };
 }

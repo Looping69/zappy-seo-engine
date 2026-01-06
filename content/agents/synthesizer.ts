@@ -54,11 +54,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<SynthesizedResearch>(prompt, {
+    const res = await callAIJSON<SynthesizedResearch>(prompt, {
       systemPrompt: SYNTHESIZER_SYSTEM,
       maxTokens: 4000
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }

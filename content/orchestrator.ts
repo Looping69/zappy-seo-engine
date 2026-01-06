@@ -1,11 +1,11 @@
-import { parallel } from "../utils/claude.js";
-import { seoResearchAgent, medicalResearchAgent, competitorResearchAgent } from "../agents/research.js";
-import { synthesizerAgent } from "../agents/synthesizer.js";
-import { writeClinical, writeEmpathetic, writePractical, writeDeepSeek, revisionWriter } from "../agents/writers.js";
-import { judgeAgent } from "../agents/judge.js";
-import { runCritique } from "../agents/critics.js";
-import { seoFinalizerAgent } from "../agents/seo.js";
-import type { Keyword, PipelineState, FinalArticle } from "../types.js";
+import { parallel } from "./utils/claude.js";
+import { seoResearchAgent, medicalResearchAgent, competitorResearchAgent } from "./agents/research.js";
+import { synthesizerAgent } from "./agents/synthesizer.js";
+import { writeClinical, writeEmpathetic, writePractical, writeDeepSeek, revisionWriter } from "./agents/writers.js";
+import { judgeAgent } from "./agents/judge.js";
+import { runCritique } from "./agents/critics.js";
+import { seoFinalizerAgent } from "./agents/seo.js";
+import type { Keyword, PipelineState, FinalArticle } from "./types.js";
 
 // ============================================================================
 // ORCHESTRATOR - Coordinates all agents
@@ -14,6 +14,7 @@ import type { Keyword, PipelineState, FinalArticle } from "../types.js";
 export class ContentOrchestrator {
   private state: PipelineState;
   private verbose: boolean;
+  private totalTokens: number = 0;
 
   constructor(keyword: Keyword, options: { verbose?: boolean; maxRevisions?: number } = {}) {
     this.verbose = options.verbose ?? true;
@@ -44,7 +45,7 @@ export class ContentOrchestrator {
     }
   }
 
-  logProgress(percent: number, step: string) {
+  async logProgress(percent: number, step: string) {
     console.log(`REPORT_PROGRESS: ${percent}|${step}`);
   }
 
@@ -88,6 +89,10 @@ export class ContentOrchestrator {
     this.state.medicalResearch = medicalResult.data;
     this.state.competitorResearch = competitorResult.data;
 
+    this.totalTokens += (seoResult.usage?.total_tokens || 0) +
+      (medicalResult.usage?.total_tokens || 0) +
+      (competitorResult.usage?.total_tokens || 0);
+
     this.log(`SEO: ${seoResult.data.search_intent} intent, ${seoResult.data.recommended_word_count} words`, "✓");
     this.log(`Medical: ${medicalResult.data.key_facts.length} key facts identified`, "✓");
     this.log(`Competitors: ${competitorResult.data.content_gaps.length} gaps found`, "✓");
@@ -117,6 +122,8 @@ export class ContentOrchestrator {
     }
 
     this.state.synthesizedResearch = result.data;
+    this.totalTokens += result.usage?.total_tokens || 0;
+
     this.log(`Angle: "${result.data.primary_angle}"`, "✓");
     this.log(`Target: ${result.data.word_count} words`, "✓");
 
@@ -163,6 +170,11 @@ export class ContentOrchestrator {
       this.log(`DeepSeek Innovative draft: "${deepSeekResult.data.title}"`, "✓");
     }
 
+    this.totalTokens += (clinicalResult.usage?.total_tokens || 0) +
+      (empatheticResult.usage?.total_tokens || 0) +
+      (practicalResult.usage?.total_tokens || 0) +
+      (deepSeekResult.usage?.total_tokens || 0);
+
     if (drafts.length < 2) {
       this.state.errors.push("Not enough drafts generated");
       this.log("Need at least 2 drafts to compare", "❌");
@@ -193,6 +205,7 @@ export class ContentOrchestrator {
     const { selectedDraft, decision } = result.data;
     this.state.selectedDraft = selectedDraft;
     this.state.currentDraft = selectedDraft;
+    this.totalTokens += result.usage?.total_tokens || 0;
 
     this.log(`Winner: Draft ${decision.winner + 1} (${selectedDraft.angle})`, "🏆");
     this.log(`Reasoning: ${decision.reasoning.substring(0, 100)}...`, "📋");
@@ -217,6 +230,7 @@ export class ContentOrchestrator {
 
       // Run medical and editorial critics in parallel
       const critique = await runCritique(this.state.currentDraft!);
+      this.totalTokens += critique.usage?.total_tokens || 0;
 
       // Store critiques
       if (critique.medical) {
@@ -248,6 +262,7 @@ export class ContentOrchestrator {
         medicalFeedback,
         editorialFeedback
       );
+      this.totalTokens += revisionResult.usage?.total_tokens || 0;
 
       if (!revisionResult.success || !revisionResult.data) {
         this.state.errors.push(`Revision failed: ${revisionResult.error}`);
@@ -286,9 +301,12 @@ export class ContentOrchestrator {
       return false;
     }
 
+    this.totalTokens += result.usage?.total_tokens || 0;
+
     // Add iteration count
     result.data.iterations = this.state.revisionCount + 1;
     result.data.quality_score = this.state.editorialCritique?.overall_score || 0;
+    result.data.total_tokens = this.totalTokens;
 
     this.state.finalArticle = result.data;
     this.state.status = "complete";
@@ -297,6 +315,7 @@ export class ContentOrchestrator {
     this.log(`Final title: "${result.data.title}"`, "✓");
     this.log(`Internal links: ${result.data.internal_links.length}`, "✓");
     this.log(`Quality score: ${result.data.quality_score}/10`, "✓");
+    this.log(`Total Token Usage: ${this.totalTokens}`, "💰");
 
     return true;
   }
@@ -314,30 +333,30 @@ export class ContentOrchestrator {
     console.log(`${"═".repeat(60)}`);
 
     try {
-      this.logProgress(5, "Initializing pipeline");
+      await this.logProgress(5, "Initializing pipeline");
 
       // Phase 1: Research
-      this.logProgress(10, "PHASE 1: Global Research");
+      await this.logProgress(10, "PHASE 1: Global Research");
       if (!await this.runResearch()) throw new Error("Research phase failed");
 
       // Phase 2: Synthesis
-      this.logProgress(25, "PHASE 2: Synthesis");
+      await this.logProgress(25, "PHASE 2: Synthesis");
       if (!await this.runSynthesis()) throw new Error("Synthesis phase failed");
 
       // Phase 3: Drafting
-      this.logProgress(40, "PHASE 3: Parallel Drafting");
+      await this.logProgress(40, "PHASE 3: Parallel Drafting");
       if (!await this.runDrafting()) throw new Error("Drafting phase failed");
 
       // Phase 4: Judging
-      this.logProgress(60, "PHASE 4: Editorial Judging");
+      await this.logProgress(60, "PHASE 4: Editorial Judging");
       if (!await this.runJudging()) throw new Error("Judging phase failed");
 
       // Phase 5: Critique
-      this.logProgress(75, "PHASE 5: Medical & Style Critique");
+      await this.logProgress(75, "PHASE 5: Medical & Style Critique");
       if (!await this.runCritiqueLoop()) throw new Error("Critique loop failed");
 
       // Phase 6: Finalization
-      this.logProgress(90, "PHASE 6: SEO Finalization");
+      await this.logProgress(90, "PHASE 6: SEO Finalization");
       if (!await this.runFinalization()) throw new Error("Finalization failed");
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -346,9 +365,10 @@ export class ContentOrchestrator {
       console.log(`  📝 "${this.state.finalArticle!.title}"`);
       console.log(`  📊 Quality: ${this.state.finalArticle!.quality_score}/10`);
       console.log(`  🔄 Iterations: ${this.state.finalArticle!.iterations}`);
+      console.log(`  💰 Total Tokens: ${this.state.finalArticle!.total_tokens}`);
       console.log(`${"═".repeat(60)}\n`);
 
-      this.logProgress(100, "Generation complete");
+      await this.logProgress(100, "Generation complete");
 
       return {
         success: true,
@@ -360,7 +380,7 @@ export class ContentOrchestrator {
       this.state.status = "failed";
       this.state.errors.push(String(error));
       console.error(`\n❌ Pipeline failed: ${error}`);
-      this.logProgress(0, "Pipeline failed");
+      await this.logProgress(0, "Pipeline failed");
       return { success: false, state: this.state };
     }
   }

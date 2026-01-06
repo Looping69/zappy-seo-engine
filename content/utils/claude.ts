@@ -8,10 +8,17 @@ export interface ClaudeOptions {
   temperature?: number;
 }
 
+export interface AIResult {
+  text: string;
+  usage: {
+    total_tokens: number;
+  };
+}
+
 export async function callClaude(
   prompt: string,
   options: ClaudeOptions = {}
-): Promise<string> {
+): Promise<AIResult> {
   const { systemPrompt, maxTokens = 4000, temperature = 0.7 } = options;
 
   const messages: Anthropic.MessageParam[] = [
@@ -19,14 +26,21 @@ export async function callClaude(
   ];
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-3-5-sonnet-20240620",
     max_tokens: maxTokens,
     messages,
     ...(systemPrompt && { system: systemPrompt }),
   });
 
   const textBlock = response.content.find(block => block.type === "text");
-  return textBlock?.type === "text" ? textBlock.text : "";
+  const text = textBlock?.type === "text" ? textBlock.text : "";
+
+  return {
+    text,
+    usage: {
+      total_tokens: response.usage.input_tokens + response.usage.output_tokens
+    }
+  };
 }
 
 export function parseJSON<T>(text: string): T {
@@ -42,9 +56,12 @@ export function parseJSON<T>(text: string): T {
 export async function callClaudeJSON<T>(
   prompt: string,
   options: ClaudeOptions = {}
-): Promise<T> {
-  const response = await callClaude(prompt, options);
-  return parseJSON<T>(response);
+): Promise<{ data: T; usage: { total_tokens: number } }> {
+  const res = await callClaude(prompt, options);
+  return {
+    data: parseJSON<T>(res.text),
+    usage: res.usage
+  };
 }
 
 // Parallel execution helper

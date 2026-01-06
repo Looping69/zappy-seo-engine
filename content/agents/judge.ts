@@ -72,24 +72,28 @@ Output JSON only:
 }`;
 
   try {
-    const decision = await callAIJSON<JudgeDecision>(prompt, {
+    const res = await callAIJSON<JudgeDecision>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 2000
     });
 
+    let totalTokens = res.usage.total_tokens;
+    const decision = res.data;
+
     let selectedDraft = drafts[decision.winner];
 
-    // If synthesis is recommended, do it
     if (decision.synthesis_opportunity && decision.elements_to_combine && decision.elements_to_combine.length > 0) {
       const synthesisResult = await synthesizeDrafts(selectedDraft, drafts, decision.elements_to_combine);
       if (synthesisResult.success && synthesisResult.data) {
         selectedDraft = synthesisResult.data;
+        totalTokens += synthesisResult.usage?.total_tokens || 0;
       }
     }
 
     return {
       success: true,
-      data: { selectedDraft, decision }
+      data: { selectedDraft, decision },
+      usage: { total_tokens: totalTokens }
     };
   } catch (error) {
     return { success: false, error: String(error) };
@@ -131,11 +135,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<ArticleDraft>(prompt, {
+    const res = await callAIJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 8000
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }

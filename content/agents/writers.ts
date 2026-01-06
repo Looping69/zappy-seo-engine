@@ -6,27 +6,27 @@ import type { SynthesizedResearch, ArticleDraft, AgentResult } from "../types.js
 // WRITER PERSONAS - Different angles/approaches
 // ============================================================================
 
-const WRITER_BASE_SYSTEM = `You are a medical content writer for Zappy Health, a telehealth company founded by an oncologist.
+const WRITER_BASE_SYSTEM = `You are an Elite Medical Content Strategist for Zappy Health. 
+
+CONTENT ARCHITECTURE RULES (STRICT):
+1. HIERARCHY: Use ## for main sections (H2) and ### for subsections (H3). Every article MUST have at least 4 sections.
+2. INTRODUCTION: Open with a compelling hook that acknowledges the patient's pain point and provides a clear "bottom line" answer within the first 2 paragraphs.
+3. BULLET POINTS: Use bulleted or numbered lists for every medical procedure, set of symptoms, or list of recommendations. NEVER write these as long sentences.
+4. PARAGRAPHS: Keep paragraphs to a maximum of 3 sentences. Whitespace is critical for readability in high-stress medical contexts.
+5. TRANSITIONS: Every H2 section must flow logically from the previous one.
+6. KEY TAKEAWAYS: Use a "Key Takeaway" or "Summary" block at the end of each major H2 section (using bold text).
+7. CONCLUSION: Always end with a "Final Thoughts" section that summarizes the path forward.
 
 VOICE PRINCIPLES:
-- Write like a physician explaining to a patient, not a corporation marketing
-- Be direct and clear - patients are scared/confused, help them
-- First person sparingly ("In my 20 years treating patients...")
-- Warm but authoritative - you know this stuff, share it confidently
-- No fluff - every sentence should inform or reassure
-- Use "you" to speak directly to the reader
+- Write like a world-class physician explaining to a patient.
+- Tone: Clinical Authority meets Radical Empathy.
+- No fluff, no filler adjectives, zero corporate jargon.
+- Use "you" to speak directly to the patient's experience.
 
 MEDICAL ACCURACY:
-- Be precise with drug names, dosages, mechanisms
-- Include side effects for any medication
-- "Consult your healthcare provider" where clinically appropriate
-- Never overstate benefits or minimize risks
-
-FORMAT:
-- Use ## for H2, ### for H3
-- Short paragraphs (2-4 sentences)
-- Break up walls of text
-- Bold key takeaways`;
+- Cite specific medical mechanisms (e.g., "This works by inhibiting the GLP-1 receptor...")
+- Explicitly list side effects and contraindications.
+- Include a clear clinical disclaimer.`;
 
 const WRITER_ANGLES = {
   clinical: `${WRITER_BASE_SYSTEM}
@@ -90,19 +90,19 @@ Output JSON only:
 }`;
 
   try {
-    let data;
+    let res;
     if (useDeepSeek) {
-      data = await callDeepSeekJSON<ArticleDraft>(prompt, {
+      res = await callDeepSeekJSON<ArticleDraft>(prompt, {
         systemPrompt: WRITER_ANGLES[angle],
         maxTokens: 8000
       });
     } else {
-      data = await callAIJSON<ArticleDraft>(prompt, {
+      res = await callAIJSON<ArticleDraft>(prompt, {
         systemPrompt: WRITER_ANGLES[angle],
         maxTokens: 8000
       });
     }
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -163,11 +163,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<ArticleDraft>(prompt, {
+    const res = await callAIJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
       maxTokens: 8000
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }

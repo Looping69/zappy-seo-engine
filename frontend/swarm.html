@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zappy Swarm | Neon Neural Circuit</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #F8FAFC;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .hud {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(15, 23, 42, 0.1);
+        }
+
+        .thought-bubble {
+            position: absolute;
+            padding: 10px 14px;
+            background: white;
+            color: #0F172A;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            transform: translate(-50%, -130%);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            z-index: 20;
+            border-bottom: 3px solid transparent;
+            width: 180px;
+            line-height: 1.4;
+        }
+
+        #agent-detail-panel {
+            position: absolute;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 320px;
+            display: none;
+            pointer-events: auto;
+            border-radius: 2rem;
+        }
+
+        .tag {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: white;
+        }
+
+        .neon-glow {
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="hud p-10 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+            <div class="glass p-8 rounded-[2rem] max-w-sm shadow-2xl shadow-slate-200/50">
+                <div id="progression-box">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Production
+                            Progress</span>
+                        <span id="global-percent" class="text-orange-600 font-black text-[11px]">0%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div id="global-progress-bar" class="h-full bg-orange-500 transition-all duration-1000"
+                            style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Sync Active</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-4 pointer-events-auto">
+                <div class="glass px-8 py-5 rounded-full flex items-center gap-8 shadow-xl shadow-slate-200/40">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full bg-orange-500 animate-ping"></div>
+                        <span class="text-slate-900 text-[11px] font-black uppercase tracking-widest">Quantum State
+                            Live</span>
+                    </div>
+                    <a href="/ui"
+                        class="bg-slate-900 text-white px-6 py-2.5 rounded-full text-[11px] font-black uppercase transition-all hover:scale-105 active:scale-95 shadow-lg shadow-slate-900/10">Dashboard</a>
+                </div>
+                <button onclick="resetCamera()"
+                    class="glass px-8 py-4 rounded-full text-slate-900 text-[11px] font-black uppercase hover:bg-slate-50 transition-all shadow-lg active:scale-95 border border-slate-200/50">Reset
+                    Viewport</button>
+            </div>
+        </div>
+
+        <div id="agent-detail-panel" class="glass p-10 shadow-2xl shadow-slate-300/50 border-slate-200">
+            <div id="detail-tag" class="inline-block tag mb-6">RESEACHER</div>
+            <h3 id="detail-name" class="text-3xl font-black text-slate-900 italic mb-3">Agent ID: 001</h3>
+            <p id="detail-mission" class="text-slate-500 text-sm mb-8 italic leading-relaxed">Synthesizing multi-modal
+                knowledge streams into a coherent neural map...</p>
+
+            <div class="space-y-6">
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Current Stream</span>
+                    <p id="detail-op" class="text-slate-900 text-sm font-bold mt-1">Extracting Latent Semantic Clusters
+                    </p>
+                </div>
+                <div class="pt-2 px-1">
+                    <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Active Circuit
+                        Vector</span>
+                    <p id="detail-path" class="text-orange-600 font-mono text-[11px] font-bold mt-2">VEC_99 //
+                        NODE_ALPHA // STACK_04</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center items-center">
+            <div
+                class="glass px-10 py-4 rounded-full text-[11px] text-slate-400 font-black uppercase tracking-widest flex gap-8 shadow-2xl shadow-slate-200/60">
+                <span class="flex items-center gap-2">🖱️ LEFT: ROTATE</span>
+                <span class="flex items-center gap-2">🕹️ RIGHT: PAN</span>
+                <span class="flex items-center gap-2">🔘 ZOOM: SCROLL</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="bubbles-container"></div>
+
+    <script>
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        // Lighter scene colors
+        scene.background = new THREE.Color(0xF8FAFC);
+        // Add subtle fog for depth on light background
+        scene.fog = new THREE.Fog(0xF8FAFC, 20, 100);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        camera.position.set(0, 10, 40);
+
+        // Lighting - brighter for light mode
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // Interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedAgent = null;
+        let isJobActive = false;
+
+        // NEON COLORS
+        const colors = {
+            cyan: 0x00f2ff,
+            purple: 0xbc13fe,
+            orange: 0xff4d00,
+            yellow: 0xffd300,
+            red: 0xff003c,
+            green: 0x24ff00
+        };
+
+        const agentData = [
+            { id: 1, name: 'Researcher Alpha', role: 'Research', color: colors.cyan, mission: 'Executing deep-level semantic mining across 4,000 global medical databases.', op: 'Analyzing clinical trial metadata', facts: ['Cross-ref 12.4k papers', 'Domain authority: 9.8', 'Latent cluster: 04'] },
+            { id: 2, name: 'Synthesizer Beta', role: 'Synthesis', color: colors.purple, mission: 'Building high-density information bridges between disparate clinical findings.', op: 'Mapping knowledge graph nodes', facts: ['Linking study S-99 to T-04', 'Entity weight: 0.88', 'Structure: Hierarchical'] },
+            { id: 3, name: 'Drafting Core', role: 'Drafting', color: colors.orange, mission: 'Converting high-density data clusters into empathetic, readable expert narratives.', op: 'Generative Narrative Pulse', facts: ['Readability: Grade 10', 'Tone: Clinical/Expert', 'Words/sec: 145'] },
+            { id: 4, name: 'Editorial Judge', role: 'Judging', color: colors.yellow, mission: 'Enforcing strict E-A-T protocols and scientific fact-density standards.', op: 'Truth-Scoping Clinical Claims', facts: ['Claim density: High', 'Source verification: 100%', 'Bias filter: Active'] },
+            { id: 5, name: 'Critique Engine', role: 'Critique', color: colors.red, mission: 'Adversarially testing all drafted conclusions for logical gaps.', op: 'Logical Stress Testing', facts: ['Negative constraints: 44', 'Loop check: 0 errors', 'Style clash: Minor'] },
+            { id: 6, name: 'SEO Architect', role: 'SEO', color: colors.green, mission: 'Optimizing the final neural structure for multi-vector semantic search intent.', op: 'Keyword Cluster Deployment', facts: ['Intent match: Informative', 'LSI density: Optimized', 'Breadcrumb: Verified'] }
+        ];
+
+        const agents = [];
+        let globalJobProgress = 0;
+        let currentShapeObjective = 'CUBE'; // Default
+        const shapes = ['CUBE', 'SPHERE', 'PYRAMID'];
+        let shapeCycleIndex = 0;
+
+        agentData.forEach((data, i) => {
+            const group = new THREE.Group();
+
+            // NEON CORE
+            const geometry = new THREE.SphereGeometry(0.4, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: data.color,
+                emissive: data.color,
+                emissiveIntensity: 1.5,
+                shininess: 100
+            });
+            const sphere = new THREE.Mesh(geometry, material);
+            group.add(sphere);
+
+            // NEON GLOW
+            const glowGeo = new THREE.SphereGeometry(0.8, 32, 32);
+            const glowMat = new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.15 });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            group.add(glow);
+
+            group.position.set(0, 0, 0); // Start at center
+            scene.add(group);
+
+            // INFINITE TRAIL SYSTEM
+            const trailGeo = new THREE.BufferGeometry();
+            const trailPositions = new Float32Array(300000 * 3); // Support for 300k vertices
+            trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+            trailGeo.setDrawRange(0, 0);
+
+            const trailMat = new THREE.LineBasicMaterial({
+                color: data.color,
+                transparent: true,
+                opacity: 0.6,
+                linewidth: 2
+            });
+            const trail = new THREE.Line(trailGeo, trailMat);
+            scene.add(trail);
+
+            // Informative Thought Bubble
+            const bubbleEl = document.createElement('div');
+            bubbleEl.className = 'thought-bubble';
+            bubbleEl.style.borderBottomColor = new THREE.Color(data.color).getStyle();
+            document.getElementById('bubbles-container').appendChild(bubbleEl);
+
+            agents.push({
+                mesh: group,
+                trail: trail,
+                trailPoints: [],
+                target: new THREE.Vector3(),
+                noiseOffset: Math.random() * 5000,
+                data: data,
+                bubble: bubbleEl,
+                thoughtTimer: 0,
+                factIndex: 0
+            });
+        });
+
+        // Grid helper for light mode aesthetics
+        const grid = new THREE.GridHelper(200, 50, 0xE2E8F0, 0xF1F5F9);
+        grid.position.y = -20;
+        scene.add(grid);
+
+        // OrbitControls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        const boundary = 25;
+
+        function getShapeTarget(agentIndex, progress) {
+            const size = 15;
+            const count = agents.length;
+
+            if (currentShapeObjective === 'CUBE') {
+                // Return one of the corner/edge positions
+                const x = ((agentIndex % 2) * 2 - 1) * size;
+                const y = ((Math.floor(agentIndex / 2) % 2) * 2 - 1) * size;
+                const z = ((Math.floor(agentIndex / 4) % 2) * 2 - 1) * size;
+                return new THREE.Vector3(x, y, z);
+            } else if (currentShapeObjective === 'SPHERE') {
+                const phi = Math.acos(-1 + (2 * agentIndex) / count);
+                const theta = Math.sqrt(count * Math.PI) * phi;
+                return new THREE.Vector3(
+                    size * Math.cos(theta) * Math.sin(phi),
+                    size * Math.sin(theta) * Math.sin(phi),
+                    size * Math.cos(phi)
+                );
+            } else { // PYRAMID
+                const pts = [
+                    [1, -1, 1], [-1, -1, 1], [-1, -1, -1], [1, -1, -1], [0, 1, 0]
+                ];
+                const p = pts[agentIndex % pts.length];
+                return new THREE.Vector3(p[0] * size, p[1] * size, p[2] * size);
+            }
+        }
+
+        function updateAgentTargets(time) {
+            if (!isJobActive) return;
+
+            agents.forEach((agent, i) => {
+                const t = time * 0.001;
+
+                if (!agent.moodTimer || time > agent.moodTimer) {
+                    agent.speed = 0.05 + Math.random() * 0.1;
+                    const shapePos = getShapeTarget(i, globalJobProgress);
+
+                    // The more progress, the higher the weight towards the shape target
+                    const weight = Math.pow(globalJobProgress / 100, 2);
+
+                    // Choose random cardinal axis but biased towards target if progress is high
+                    const axis = Math.floor(Math.random() * 3);
+                    let dir = Math.random() > 0.5 ? 1 : -1;
+
+                    // Bias logic
+                    if (Math.random() < weight) {
+                        const diff = [
+                            shapePos.x - agent.target.x,
+                            shapePos.y - agent.target.y,
+                            shapePos.z - agent.target.z
+                        ];
+                        dir = Math.sign(diff[axis]) || (Math.random() > 0.5 ? 1 : -1);
+                    }
+
+                    const dist = 3 + Math.random() * 6;
+                    agent.sporadicDir = new THREE.Vector3(0, 0, 0);
+                    if (axis === 0) agent.sporadicDir.x = dir * dist;
+                    else if (axis === 1) agent.sporadicDir.y = dir * dist;
+                    else agent.sporadicDir.z = dir * dist;
+
+                    agent.moodTimer = time + 300 + Math.random() * 800;
+                    agent.target.add(agent.sporadicDir);
+
+                    agent.target.x = Math.max(-boundary, Math.min(boundary, agent.target.x));
+                    agent.target.y = Math.max(-boundary, Math.min(boundary, agent.target.y));
+                    agent.target.z = Math.max(-boundary, Math.min(boundary, agent.target.z));
+                }
+            });
+        }
+
+        // Interaction Lines (Synapses)
+        const synapseMax = 15;
+        const synapseGeo = new THREE.BufferGeometry();
+        const synapseMat = new THREE.LineBasicMaterial({ color: 0xCBD5E1, transparent: true, opacity: 0.2 });
+        const synapses = new THREE.LineSegments(synapseGeo, synapseMat);
+        scene.add(synapses);
+
+        function updateSynapses() {
+            const positions = [];
+            if (isJobActive) {
+                for (let i = 0; i < agents.length; i++) {
+                    for (let j = i + 1; j < agents.length; j++) {
+                        const dist = agents[i].mesh.position.distanceTo(agents[j].mesh.position);
+                        if (dist < 12) {
+                            positions.push(
+                                agents[i].mesh.position.x, agents[i].mesh.position.y, agents[i].mesh.position.z,
+                                agents[j].mesh.position.x, agents[j].mesh.position.y, agents[j].mesh.position.z
+                            );
+                        }
+                    }
+                }
+            }
+            synapseGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now();
+            updateAgentTargets(time);
+            updateSynapses();
+
+            agents.forEach(agent => {
+                // Lerping for smooth movement towards quantized grid targets
+                agent.mesh.position.lerp(agent.target, isJobActive ? 0.08 : 0.02);
+
+                // Add to persistent trail
+                agent.trailPoints.push(agent.mesh.position.clone());
+
+                const posAttr = agent.trail.geometry.attributes.position;
+                const count = agent.trailPoints.length;
+                posAttr.setXYZ(count - 1, agent.mesh.position.x, agent.mesh.position.y, agent.mesh.position.z);
+                agent.trail.geometry.setDrawRange(0, count);
+                posAttr.needsUpdate = true;
+
+                // Informative Bubble logic
+                const vector = agent.mesh.position.clone();
+                vector.project(camera);
+
+                const screenX = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                const screenY = (vector.y * -0.5 + 0.5) * window.innerHeight;
+
+                agent.bubble.style.left = `${screenX}px`;
+                agent.bubble.style.top = `${screenY}px`;
+
+                if (isJobActive && time > agent.thoughtTimer) {
+                    const fact = agent.data.facts[agent.factIndex];
+                    agent.bubble.innerHTML = `
+                        <div class="text-[9px] font-black uppercase mb-1 opacity-50">${agent.data.role} ACTIVE</div>
+                        <div class="text-slate-900">${fact}</div>
+                    `;
+                    agent.bubble.style.opacity = '1';
+                    agent.bubble.style.transform = 'translate(-50%, -130%) scale(1)';
+
+                    setTimeout(() => {
+                        agent.bubble.style.opacity = '0';
+                        agent.bubble.style.transform = 'translate(-50%, -120%) scale(0.95)';
+                    }, 3500);
+
+                    agent.factIndex = (agent.factIndex + 1) % agent.data.facts.length;
+                    agent.thoughtTimer = time + 6000 + Math.random() * 4000;
+                } else if (!isJobActive) {
+                    agent.bubble.style.opacity = '0';
+                }
+            });
+
+            if (selectedAgent) {
+                const targetPos = selectedAgent.mesh.position.clone();
+                const camTargetPos = targetPos.clone().add(new THREE.Vector3(0, 5, 12));
+                camera.position.lerp(camTargetPos, 0.05);
+                camera.lookAt(targetPos);
+                controls.enabled = false;
+            } else {
+                controls.enabled = true;
+                controls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('click', (event) => {
+            // Prevent deselect when clicking on the sidebar
+            if (event.target.closest('.hud')) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(agents.map(a => a.mesh), true);
+
+            if (intersects.length > 0) {
+                const clickedGroup = intersects[0].object.parent;
+                const agent = agents.find(a => a.mesh === clickedGroup);
+                if (agent) selectAgent(agent);
+            } else {
+                resetCamera();
+            }
+        });
+
+        function selectAgent(agent) {
+            selectedAgent = agent;
+            const panel = document.getElementById('agent-detail-panel');
+            panel.style.display = 'block';
+
+            document.getElementById('detail-tag').innerText = agent.data.role;
+            document.getElementById('detail-tag').style.background = new THREE.Color(agent.data.color).getStyle();
+            document.getElementById('detail-name').innerText = agent.data.name;
+            document.getElementById('detail-mission').innerText = agent.data.mission;
+            document.getElementById('detail-op').innerText = agent.data.op;
+            document.getElementById('detail-path').innerText = `VECTOR_${Math.floor(Math.random() * 999)} / HYPER_NODE / ${agent.data.role.toUpperCase()}`;
+        }
+
+        function resetCamera() {
+            selectedAgent = null;
+            document.getElementById('agent-detail-panel').style.display = 'none';
+        }
+
+        async function fetchProgress() {
+            try {
+                const res = await fetch('/keywords');
+                const data = await res.json();
+                const active = data.keywords.find(k => k.status === 'generating');
+
+                isJobActive = !!active; // SET GLOBAL STATE
+
+                if (active) {
+                    const lRes = await fetch(`/content/logs/${active.id}`);
+                    const lData = await lRes.json();
+                    if (lData.logs.length > 0) {
+                        const last = lData.logs[lData.logs.length - 1];
+                        const p = Math.max(0, last.percent);
+                        globalJobProgress = p; // SYNC PROGRESS
+                        document.getElementById('global-percent').innerText = p + '%';
+                        document.getElementById('global-progress-bar').style.width = p + '%';
+                    }
+                } else {
+                    if (isJobActive) {
+                        // Job just finished, clear for next cycle
+                        shapeCycleIndex = (shapeCycleIndex + 1) % shapes.length;
+                        currentShapeObjective = shapes[shapeCycleIndex];
+                    }
+                    globalJobProgress = 0;
+                    document.getElementById('global-percent').innerText = '0%';
+                    document.getElementById('global-progress-bar').style.width = '0%';
+                }
+            } catch (e) { }
+        }
+
+        animate();
+        setInterval(fetchProgress, 5000);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>

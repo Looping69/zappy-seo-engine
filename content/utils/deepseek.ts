@@ -13,15 +13,22 @@ export interface DeepSeekOptions {
   model?: string;
 }
 
+export interface DeepSeekResult {
+  text: string;
+  usage: {
+    total_tokens: number;
+  };
+}
+
 export async function callDeepSeek(
   prompt: string,
   options: DeepSeekOptions = {}
-): Promise<string> {
-  const { 
-    systemPrompt, 
-    maxTokens = 4000, 
+): Promise<DeepSeekResult> {
+  const {
+    systemPrompt,
+    maxTokens = 4000,
     temperature = 0.7,
-    model = "deepseek-chat" 
+    model = "deepseek-chat"
   } = options;
 
   const response = await client.chat.completions.create({
@@ -35,7 +42,12 @@ export async function callDeepSeek(
     response_format: { type: "text" },
   });
 
-  return response.choices[0]?.message?.content || "";
+  return {
+    text: response.choices[0]?.message?.content || "",
+    usage: {
+      total_tokens: response.usage?.total_tokens || 0
+    }
+  };
 }
 
 export function parseJSON<T>(text: string): T {
@@ -51,7 +63,10 @@ export function parseJSON<T>(text: string): T {
 export async function callDeepSeekJSON<T>(
   prompt: string,
   options: DeepSeekOptions = {}
-): Promise<T> {
-  const response = await callDeepSeek(prompt, options);
-  return parseJSON<T>(response);
+): Promise<{ data: T; usage: { total_tokens: number } }> {
+  const res = await callDeepSeek(prompt, options);
+  return {
+    data: parseJSON<T>(res.text),
+    usage: res.usage
+  };
 }

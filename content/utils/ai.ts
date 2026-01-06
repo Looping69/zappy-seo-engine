@@ -10,28 +10,37 @@ function isAnthropicMissing(): boolean {
     return !anthropicKey || anthropicKey.startsWith("sk-ant-") || anthropicKey.includes("...");
 }
 
+export interface AIUsage {
+    total_tokens: number;
+}
+
+export interface AIResult<T = string> {
+    data: T;
+    usage: AIUsage;
+}
+
 export async function callAI(
     prompt: string,
     options: { systemPrompt?: string; maxTokens?: number; temperature?: number } = {}
-): Promise<string> {
+): Promise<AIResult<string>> {
     if (isAnthropicMissing() && process.env.DEEPSEEK_API_KEY) {
-        if (!globalThis.hasLoggedDeepSeekFallback) {
-            console.log("  ⚠️ Using DeepSeek as primary engine (Anthropic key is missing or placeholder)");
-            (globalThis as any).hasLoggedDeepSeekFallback = true;
-        }
-        return callDeepSeek(prompt, options);
+        const res = await callDeepSeek(prompt, options);
+        return { data: res.text, usage: res.usage };
     }
 
-    return callClaude(prompt, options);
+    const res = await callClaude(prompt, options);
+    return { data: res.text, usage: res.usage };
 }
 
 export async function callAIJSON<T>(
     prompt: string,
     options: { systemPrompt?: string; maxTokens?: number; temperature?: number } = {}
-): Promise<T> {
+): Promise<AIResult<T>> {
     if (isAnthropicMissing() && process.env.DEEPSEEK_API_KEY) {
-        return callDeepSeekJSON<T>(prompt, options);
+        const res = await callDeepSeekJSON<T>(prompt, options);
+        return res;
     }
 
-    return callClaudeJSON<T>(prompt, options);
+    const res = await callClaudeJSON<T>(prompt, options);
+    return res;
 }

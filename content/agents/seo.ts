@@ -68,11 +68,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<FinalArticle>(prompt, {
+    const res = await callAIJSON<FinalArticle>(prompt, {
       systemPrompt: SEO_FINALIZER_SYSTEM,
       maxTokens: 8000
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }

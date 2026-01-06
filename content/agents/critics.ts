@@ -52,11 +52,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<MedicalCritique>(prompt, {
+    const res = await callAIJSON<MedicalCritique>(prompt, {
       systemPrompt: MEDICAL_REVIEWER_SYSTEM,
       maxTokens: 2000
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -113,11 +113,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<EditorialCritique>(prompt, {
+    const res = await callAIJSON<EditorialCritique>(prompt, {
       systemPrompt: EDITORIAL_REVIEWER_SYSTEM,
       maxTokens: 2500
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -142,6 +142,8 @@ export async function runCritique(draft: ArticleDraft): Promise<{
   const medical = medicalResult.success ? medicalResult.data! : null;
   const editorial = editorialResult.success ? editorialResult.data! : null;
 
+  const totalTokens = (medicalResult.usage?.total_tokens || 0) + (editorialResult.usage?.total_tokens || 0);
+
   // Combine revision requirements
   const revisionNeeded: string[] = [];
 
@@ -156,5 +158,5 @@ export async function runCritique(draft: ArticleDraft): Promise<{
   // Both must approve for overall approval
   const approved = (medical?.approved ?? false) && (editorial?.approved ?? false);
 
-  return { medical, editorial, approved, revisionNeeded };
+  return { medical, editorial, approved, revisionNeeded, usage: { total_tokens: totalTokens } };
 }

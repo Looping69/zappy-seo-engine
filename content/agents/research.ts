@@ -33,8 +33,8 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<SEOResearch>(prompt, { systemPrompt: SEO_SYSTEM });
-    return { success: true, data };
+    const res = await callAIJSON<SEOResearch>(prompt, { systemPrompt: SEO_SYSTEM });
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -74,11 +74,11 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<MedicalResearch>(prompt, {
+    const res = await callAIJSON<MedicalResearch>(prompt, {
       systemPrompt: MEDICAL_SYSTEM,
       maxTokens: 3000
     });
-    return { success: true, data };
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }
@@ -126,8 +126,8 @@ Output JSON only:
 }`;
 
   try {
-    const data = await callAIJSON<CompetitorResearch>(prompt, { systemPrompt: COMPETITOR_SYSTEM });
-    return { success: true, data };
+    const res = await callAIJSON<CompetitorResearch>(prompt, { systemPrompt: COMPETITOR_SYSTEM });
+    return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
   }
