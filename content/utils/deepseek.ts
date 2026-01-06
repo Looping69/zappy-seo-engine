@@ -1,10 +1,21 @@
 import OpenAI from "openai";
 import "dotenv/config";
 
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: "https://api.deepseek.com",
-});
+let client: OpenAI | null = null;
+
+const getClient = () => {
+  if (!client) {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      throw new Error("DEEPSEEK_API_KEY is not set in environment variables");
+    }
+    client = new OpenAI({
+      apiKey,
+      baseURL: "https://api.deepseek.com",
+    });
+  }
+  return client;
+};
 
 export interface DeepSeekOptions {
   systemPrompt?: string;
@@ -31,7 +42,7 @@ export async function callDeepSeek(
     model = "deepseek-chat"
   } = options;
 
-  const response = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model,
     messages: [
       ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),

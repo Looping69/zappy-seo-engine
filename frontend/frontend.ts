@@ -1,12 +1,8 @@
-import { api } from "encore.dev/api";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-
 // Serve the built React app static assets
 export const assets = api.static({
     expose: true,
     path: "/assets",
-    dir: "./web/dist/assets"
+    dir: "../web/dist/assets"
 });
 
 // Serve the dashboard (React App Entry)
