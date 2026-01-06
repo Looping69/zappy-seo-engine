@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zappy | Autonomous Content Factory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --brand: #F97316;
+            --brand-light: #FFF7ED;
+            --slate-900: #0F172A;
+            --slate-500: #64748B;
+            --border: #E2E8F0;
+        }
+
+        body {
+            background-color: #F8FAFC;
+            color: var(--slate-900);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            letter-spacing: -0.015em;
+            font-size: 13px;
+        }
+
+        .max-container {
+            max-width: 1560px;
+            margin: 0 auto;
+        }
+
+        .step-node {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11px;
+            z-index: 10;
+        }
+
+        .factory-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .factory-card:hover {
+            border-color: #CBD5E1;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .agent-chip {
+            background: var(--brand-light);
+            color: var(--brand);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .progress-bar-wrap {
+            height: 6px;
+            background: #F1F5F9;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--brand);
+            border-radius: 9999px;
+            transition: width 1s ease-in-out;
+        }
+
+        .terminal-modern {
+            background: #0F172A;
+            color: #94A3B8;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 0.75rem;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .pulse {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 10px;
+        }
+
+        .modal-backdrop {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        .blog-content h1 {
+            font-size: 2.75rem;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 2.5rem;
+            color: #0F172A;
+            letter-spacing: -0.04em;
+        }
+
+        .blog-content h2 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-top: 3.5rem;
+            margin-bottom: 1.25rem;
+            color: #1E293B;
+            border-left: 4px solid var(--brand);
+            padding-left: 1rem;
+            line-height: 1.2;
+        }
+
+        .blog-content h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #334155;
+        }
+
+        .blog-content p {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: #334155;
+            margin-bottom: 1.75rem;
+            font-weight: 400;
+        }
+
+        .blog-content ul {
+            list-style-type: disc;
+            margin-left: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .blog-content ol {
+            list-style-type: decimal;
+            margin-left: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .blog-content li {
+            margin-bottom: 0.75rem;
+            color: #334155;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .blog-content strong {
+            color: #0F172A;
+            font-weight: 700;
+        }
+
+        .blog-content blockquote {
+            border-left: 4px solid #F1F5F9;
+            padding-left: 1.5rem;
+            font-style: italic;
+            color: #64748B;
+            margin: 2.5rem 0;
+        }
+    </style>
+</head>
+
+<body class="p-4 lg:p-6">
+    <div class="max-container">
+        <!-- Compact Header -->
+        <header
+            class="mb-6 flex flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-200">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span
+                        class="bg-orange-600 text-white w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg">Z</span>
+                    <h1 class="text-lg font-extrabold tracking-tight text-slate-900 uppercase italic">Zappy <span
+                            class="text-orange-600">Engine</span></h1>
+                </div>
+                <div class="hidden xl:flex items-center gap-8 relative px-8 border-l border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <div class="step-node bg-white border-brand text-brand">1</div>
+                        <span class="text-[10px] font-black uppercase text-slate-400">Strategy</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="step-node bg-white border-brand text-brand">2</div>
+                        <span class="text-[10px] font-black uppercase text-slate-400">Factory</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="step-node bg-white">3</div>
+                        <span class="text-[10px] font-black uppercase text-slate-400">Library</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div
+                    class="hidden md:flex items-center gap-2 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-orange-100">
+                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
+                    Agent Swarm Online
+                </div>
+                <a href="swarm.html"
+                    class="text-[10px] font-black uppercase text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-all mr-2">
+                    Live Swarm
+                </a>
+                <button onclick="handleBatch()"
+                    class="bg-orange-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20">
+                    Deploy Batch
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+
+            <!-- CONTROLS & STATS -->
+            <div class="xl:col-span-1 space-y-6">
+                <!-- Action Card -->
+                <div class="factory-card p-6">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">New Production
+                        Project</h3>
+                    <input type="text" id="seed-topic" placeholder="Topic: e.g. Longevity Diet"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/10 focus:border-orange-600 mb-3 transition-all">
+                    <button onclick="handleSeed()" id="btn-seed"
+                        class="w-full bg-slate-900 text-white font-bold py-3 text-xs rounded-lg hover:bg-black transition-all">
+                        Launch Research
+                    </button>
+                    <div class="mt-4 pt-4 border-t border-slate-50 flex flex-wrap gap-1.5">
+                        <span class="agent-chip">Medical</span>
+                        <span class="agent-chip">SEO</span>
+                        <span class="agent-chip">Editor</span>
+                    </div>
+                </div>
+
+                <!-- Global Stats -->
+                <div class="factory-card p-6 bg-slate-900 text-white border-none relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 opacity-5">
+                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-6">
+                        <div>
+                            <div id="stat-total" class="text-2xl font-black">0</div>
+                            <div class="text-[9px] text-slate-500 font-black uppercase">Topics</div>
+                        </div>
+                        <div>
+                            <div id="stat-published" class="text-2xl font-black text-orange-500">0</div>
+                            <div class="text-[9px] text-slate-500 font-black uppercase">Live</div>
+                        </div>
+                        <div class="col-span-2">
+                            <div class="text-[9px] text-slate-500 font-black uppercase mb-1">Avg Quality Score</div>
+                            <div id="stat-quality" class="text-xl font-black">-%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORKSPACE -->
+            <div class="xl:col-span-3 space-y-6">
+
+                <!-- Compact Pipeline -->
+                <div id="progress-card"
+                    class="factory-card p-5 bg-white border-orange-100 hidden shadow-xl shadow-orange-500/5">
+                    <div class="flex justify-between items-center gap-8">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span
+                                    class="bg-orange-600 text-white text-[9px] px-1.5 py-0.5 rounded font-black uppercase">Factory
+                                    Active</span>
+                                <h3 id="progress-step"
+                                    class="text-sm font-black text-slate-900 italic uppercase tracking-tighter">
+                                    Initializing...</h3>
+                            </div>
+                            <div class="progress-bar-wrap">
+                                <div id="progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+                            </div>
+                            <p id="progress-log" class="text-[10px] text-slate-400 mt-2 truncate font-medium">Agents are
+                                starting coordination...</p>
+                        </div>
+                        <div id="progress-percent" class="text-4xl font-black text-orange-500 italic">0%</div>
+                    </div>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="flex items-center gap-8 border-b border-slate-200">
+                    <button onclick="switchTab('keywords')" id="tab-keywords"
+                        class="pb-3 text-xs font-black border-b-2 border-orange-600 text-slate-900 transition-all uppercase tracking-tight">Active
+                        Strategy Queue</button>
+                    <button onclick="switchTab('content')" id="tab-content"
+                        class="pb-3 text-xs font-black border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all uppercase tracking-tight">Production
+                        Library</button>
+                    <button onclick="switchTab('logs')" id="tab-logs"
+                        class="pb-3 text-xs font-black border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all uppercase tracking-tight">Agent
+                        reasoning</button>
+                </div>
+
+                <!-- Strategies Panel -->
+                <div id="panel-keywords" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Queue injected here -->
+                </div>
+
+                <!-- Content Panel -->
+                <div id="panel-content" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Articles injected here -->
+                </div>
+
+                <!-- Logs Panel -->
+                <div id="panel-logs" class="hidden">
+                    <div class="factory-card overflow-hidden border-orange-100 shadow-xl shadow-orange-500/5">
+                        <div
+                            class="bg-slate-50 border-b border-slate-100 px-6 py-3 flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
+                            <span>Live Neural Circuit Visualization</span>
+                            <div class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                <span>Synchronized</span>
+                            </div>
+                        </div>
+                        <iframe src="swarm.html" class="w-full h-[600px] border-none"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Article Detail Modal -->
+    <div id="article-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 modal-backdrop" onclick="closeArticle()"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-full max-w-4xl bg-white shadow-2xl transition-transform duration-500 translate-x-full"
+            id="article-sidebar">
+            <div class="h-full flex flex-col">
+                <div class="p-8 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="bg-orange-600 text-white w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg">Z</span>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Article Insight
+                            Preview</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btn-edit-toggle" onclick="toggleEditMode()"
+                            class="text-orange-600 hover:bg-orange-50 transition-colors uppercase text-[10px] font-black tracking-widest px-4 py-2 border border-orange-200 rounded-lg">Edit
+                            Insight</button>
+                        <button onclick="closeArticle()"
+                            class="text-slate-400 hover:text-slate-900 transition-colors uppercase text-[10px] font-black tracking-widest px-4 py-2 bg-slate-50 rounded-lg">Close
+                            Viewport</button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-12 lg:p-20">
+                    <div class="max-w-2xl mx-auto">
+                        Clinical Guide</div>
+                    <div id="modal-tokens"
+                        class="inline-block bg-slate-100 text-slate-500 text-[10px] font-black px-3 py-1 rounded-full uppercase mb-8 ml-2">
+                        0 Tokens</div>
+                    <div id="modal-body" class="blog-content">
+                        <!-- View mode -->
+                    </div>
+                    <div id="edit-mode" class="hidden space-y-8">
+                        <div>
+                            <label
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Article
+                                Title</label>
+                            <textarea id="edit-title"
+                                class="w-full text-3xl font-black text-slate-900 border-b border-slate-200 focus:border-orange-500 outline-none pb-4 resize-none leading-tight"></textarea>
+                        </div>
+                        <div>
+                            <label
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Meta
+                                Description</label>
+                            <textarea id="edit-meta"
+                                class="w-full italic text-slate-500 text-lg border-l-4 border-orange-500 pl-6 py-2 bg-orange-50/30 rounded-r-xl outline-none resize-none"></textarea>
+                        </div>
+                        <div>
+                            <label
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Body
+                                (Markdown Supported)</label>
+                            <textarea id="edit-body"
+                                class="w-full h-[600px] text-slate-700 font-mono text-sm border border-slate-100 rounded-2xl p-8 focus:border-orange-200 outline-none shadow-inner"></textarea>
+                        </div>
+                        <div class="flex justify-end gap-4 py-10">
+                            <button onclick="toggleEditMode()"
+                                class="px-8 py-3 text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 transition-all">Cancel</button>
+                            <button onclick="saveArticleChanges()" id="btn-save-article"
+                                class="px-10 py-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all hover:bg-orange-700">Save
+                                Insight Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://zappy-seo-engine-r64i.encoreapi.com';
+        let currentKeywordId = null;
+        let pollTimer = null;
+
+        function switchTab(tab) {
+            ['keywords', 'content', 'logs'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const panel = document.getElementById(`panel-${t}`);
+                if (t === tab) {
+                    btn.classList.add('border-orange-600', 'text-slate-900');
+                    btn.classList.remove('border-transparent', 'text-slate-400');
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('border-orange-600', 'text-slate-900');
+                    btn.classList.add('border-transparent', 'text-slate-400');
+                    panel.classList.add('hidden');
+                }
+            });
+            if (tab === 'content') refreshContent();
+        }
+
+        async function refreshStats() {
+            try {
+                const res = await fetch(`${API_BASE}/content/stats`);
+                const stats = await res.json();
+                document.getElementById('stat-total').innerText = stats.totalKeywords;
+                document.getElementById('stat-published').innerText = stats.publishedKeywords;
+                document.getElementById('stat-quality').innerText = stats.avgQualityScore > 0 ? stats.avgQualityScore + '/10' : '-%';
+            } catch (e) { }
+        }
+
+        async function refreshKeywords() {
+            try {
+                const res = await fetch(`${API_BASE}/keywords`);
+                const data = await res.json();
+                const container = document.getElementById('panel-keywords');
+                container.innerHTML = '';
+
+                if (data.keywords.length === 0) {
+                    container.innerHTML = `<div class="p-10 text-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200 italic text-xs col-span-2">No active strategies.</div>`;
+                    return;
+                }
+
+                data.keywords.forEach(kw => {
+                    const row = document.createElement('div');
+                    row.className = "factory-card p-5 flex flex-row items-center justify-between gap-4";
+                    const statusClass = kw.status === 'published' ? 'text-emerald-500' : kw.status === 'generating' ? 'text-orange-600 font-black' : 'text-slate-400';
+                    const pulseClass = kw.status === 'generating' ? 'pulse' : '';
+
+                    row.innerHTML = `
+                        <div class="flex-1 overflow-hidden">
+                            <h6 class="font-bold text-slate-800 text-sm truncate">${kw.keyword}</h6>
+                            <div class="flex gap-2 mt-1">
+                                <span class="text-[9px] font-black text-slate-400 uppercase opacity-60">${kw.cluster || 'Primary'}</span>
+                                <span class="text-[9px] font-black text-slate-400 uppercase opacity-60">${kw.intent || 'Info'}</span>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <div class="text-[9px] font-black uppercase mb-2 ${statusClass} ${pulseClass}">${kw.status}</div>
+                            ${kw.status === 'queued' ?
+                            `<button onclick="startSingle(${kw.id})" class="bg-orange-500 text-white text-[9px] font-black px-3 py-1.5 rounded-md hover:bg-orange-600 transition-all uppercase tracking-widest leading-none">Deploy</button>`
+                            : kw.status === 'generating' ?
+                                `<button onclick="trackKeyword(${kw.id})" class="bg-slate-100 text-slate-600 text-[9px] font-black px-3 py-1.5 rounded-md transition-all uppercase tracking-widest leading-none">Watch</button>`
+                                : ''}
+                        </div>
+                    `;
+                    container.appendChild(row);
+                    if (kw.status === 'generating' && !currentKeywordId) trackKeyword(kw.id);
+                });
+            } catch (e) { }
+        }
+
+        async function refreshContent() {
+            try {
+                const res = await fetch(`${API_BASE}/content`);
+                const data = await res.json();
+                const container = document.getElementById('panel-content');
+                if (data.records.length === 0) {
+                    container.innerHTML = `<div class="p-10 text-center text-slate-400 italic text-xs col-span-3">Nothing produced yet.</div>`;
+                    return;
+                };
+
+                window.contentLibrary = data.records; // Cache for modal
+
+                container.innerHTML = data.records.map(r => `
+                    <div class="factory-card p-5 bg-white flex flex-col h-full cursor-pointer hover:border-orange-200 transition-all group" onclick="openArticle(${r.id})">
+                        <div class="flex justify-between items-start mb-2">
+                             <div class="flex gap-1">
+                                <div class="text-[8px] font-black text-orange-500 uppercase tracking-widest border border-orange-100 px-1 rounded">Rank: ${r.quality_score}</div>
+                                <div class="text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-100 px-1 rounded">${(r.total_tokens || 0).toLocaleString()} tkn</div>
+                             </div>
+                             <div class="text-[8px] font-black text-slate-400 uppercase tracking-tighter">${new Date(r.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <h4 class="font-bold text-slate-900 text-xs leading-tight mb-2 line-clamp-2 transition-colors group-hover:text-orange-600">${r.title}</h4>
+                        <p class="text-[10px] text-slate-500 line-clamp-2 mb-4 flex-1">${r.meta_description}</p>
+                        <div class="pt-3 border-t border-slate-50 flex justify-between items-center">
+                            <span class="text-[9px] font-black text-slate-300 italic truncate pr-2">/${r.slug}</span>
+                            <div class="text-[9px] font-black text-slate-900 uppercase flex-shrink-0 group-hover:translate-x-1 transition-transform">View Insight →</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) { }
+        }
+
+        let currentArticle = null;
+        let isEditMode = false;
+
+        function openArticle(id) {
+            currentArticle = window.contentLibrary.find(r => r.id === id);
+            if (!currentArticle) return;
+
+            isEditMode = false;
+            document.getElementById('modal-body').classList.remove('hidden');
+            document.getElementById('edit-mode').classList.add('hidden');
+            document.getElementById('btn-edit-toggle').classList.remove('hidden');
+            document.getElementById('btn-edit-toggle').innerText = 'Edit Insight';
+
+            const modal = document.getElementById('article-modal');
+            const sidebar = document.getElementById('article-sidebar');
+            const body = document.getElementById('modal-body');
+
+            renderArticleView();
+            document.getElementById('modal-tokens').innerText = `${(currentArticle.total_tokens || 0).toLocaleString()} Tokens`;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => sidebar.classList.remove('translate-x-full'), 10);
+        }
+
+        function renderArticleView() {
+            const body = document.getElementById('modal-body');
+            body.innerHTML = `
+                <h1 class="mb-4 text-4xl font-black text-slate-900 leading-tight">${currentArticle.title}</h1>
+                <div class="mb-12 italic text-slate-500 text-lg border-l-4 border-orange-500 pl-6 py-2 bg-orange-50/30 rounded-r-xl">${currentArticle.meta_description}</div>
+                <div class="prose prose-slate max-w-none">
+                    ${marked.parse(currentArticle.body)}
+                </div>
+            `;
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const viewPanel = document.getElementById('modal-body');
+            const editPanel = document.getElementById('edit-mode');
+            const toggleBtn = document.getElementById('btn-edit-toggle');
+
+            if (isEditMode) {
+                viewPanel.classList.add('hidden');
+                editPanel.classList.remove('hidden');
+                toggleBtn.innerText = 'View Insight';
+
+                document.getElementById('edit-title').value = currentArticle.title;
+                document.getElementById('edit-meta').value = currentArticle.meta_description;
+                document.getElementById('edit-body').value = currentArticle.body;
+            } else {
+                viewPanel.classList.remove('hidden');
+                editPanel.classList.add('hidden');
+                toggleBtn.innerText = 'Edit Insight';
+                renderArticleView();
+            }
+        }
+
+        async function saveArticleChanges() {
+            const btn = document.getElementById('btn-save-article');
+            btn.disabled = true;
+            btn.innerText = 'Persisting...';
+
+            const updatedData = {
+                title: document.getElementById('edit-title').value,
+                meta_description: document.getElementById('edit-meta').value,
+                body: document.getElementById('edit-body').value
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/content/${currentArticle.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (res.ok) {
+                    currentArticle.title = updatedData.title;
+                    currentArticle.meta_description = updatedData.meta_description;
+                    currentArticle.body = updatedData.body;
+                    toggleEditMode();
+                    refreshContent();
+                }
+            } catch (e) {
+                alert('Failed to save changes.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Save Insight Changes';
+            }
+        }
+
+        function closeArticle() {
+            const sidebar = document.getElementById('article-sidebar');
+            sidebar.classList.add('translate-x-full');
+            setTimeout(() => {
+                document.getElementById('article-modal').classList.add('hidden');
+            }, 500);
+        }
+
+        async function handleSeed() {
+            const topic = document.getElementById('seed-topic').value;
+            if (!topic) return;
+            const btn = document.getElementById('btn-seed');
+            btn.disabled = true; btn.innerText = 'Analyzing...';
+            try {
+                await fetch(`${API_BASE}/keywords/seed`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                document.getElementById('seed-topic').value = '';
+                refreshAll();
+            } finally {
+                btn.disabled = false; btn.innerText = 'Launch Research';
+            }
+        }
+
+        async function startSingle(id) {
+            await fetch(`${API_BASE}/content/generate/${id}`, { method: 'POST' });
+            trackKeyword(id);
+            refreshAll();
+        }
+
+        async function handleBatch() {
+            await fetch(`${API_BASE}/content/batch`, { method: 'POST' });
+            refreshAll();
+        }
+
+        function trackKeyword(id) {
+            currentKeywordId = id;
+            if (pollTimer) clearInterval(pollTimer);
+            document.getElementById('progress-card').classList.remove('hidden');
+            pollTimer = setInterval(poll, 1500);
+            poll();
+        }
+
+        async function poll() {
+            if (!currentKeywordId) return;
+            try {
+                const res = await fetch(`${API_BASE}/content/logs/${currentKeywordId}`);
+                const data = await res.json();
+                const last = data.logs[data.logs.length - 1];
+
+                if (last) {
+                    document.getElementById('progress-bar').style.width = Math.max(0, last.percent) + '%';
+                    document.getElementById('progress-percent').innerText = Math.max(0, last.percent) + '%';
+                    document.getElementById('progress-step').innerText = last.step;
+                    document.getElementById('progress-log').innerText = `Observation: Agents are currently in ${last.step}.`;
+
+                    if (last.percent === 100 || last.percent < 0) {
+                        clearInterval(pollTimer);
+                        currentKeywordId = null;
+                        document.getElementById('progress-card').classList.add('hidden');
+                        refreshAll();
+                    }
+                }
+            } catch (e) { }
+        }
+
+        function refreshAll() {
+            refreshKeywords();
+            refreshStats();
+            refreshContent();
+        }
+
+        refreshAll();
+        setInterval(refreshAll, 60000);
+    </script>
+</body>
+
+</html>
