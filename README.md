@@ -1,186 +1,102 @@
-# Zappy Multi-Agent Content Engine
+# Zappy Autonomous Content Factory (v2)
 
-A true multi-agent system for generating high-quality medical SEO content.
+A powerful, multi-agent autonomous system for generating medical-grade SEO content, built on **Encore.dev** with a distributed neural architecture.
 
-## Architecture
+## 🧠 Distributed Agent Architecture
 
-```
-                         ORCHESTRATOR
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-  ┌───────────┐        ┌───────────┐        ┌───────────┐
-  │    SEO    │        │  MEDICAL  │        │COMPETITOR │
-  │ RESEARCH  │        │ RESEARCH  │        │ RESEARCH  │
-  └───────────┘        └───────────┘        └───────────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              │
-                              ▼
-                      ┌───────────────┐
-                      │  SYNTHESIZER  │
-                      │ (merge intel) │
-                      └───────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-  ┌───────────┐        ┌───────────┐        ┌───────────┐
-  │  WRITER   │        │  WRITER   │        │  WRITER   │
-  │ Clinical  │        │ Empathetic│        │ Practical │
-  └───────────┘        └───────────┘        └───────────┘
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              │
-                              ▼
-                        ┌───────────┐
-                        │   JUDGE   │
-                        │(picks best│
-                        │+ combines)│
-                        └───────────┘
-                              │
-                              ▼
-               ┌──────────────────────────┐
-               │      CRITIQUE LOOP       │
-               │                          │
-               │  ┌────────┐  ┌────────┐  │
-               │  │MEDICAL │◄►│EDITORIAL│  │
-               │  │REVIEWER│  │REVIEWER │  │
-               │  └────────┘  └────────┘  │
-               │        │          │      │
-               │        ▼          ▼      │
-               │     ┌────────────────┐   │
-               │     │REVISION WRITER │◄──┤
-               │     └────────────────┘   │
-               │                          │
-               │   Loop until approved    │
-               │   (max 3 iterations)     │
-               └──────────────────────────┘
-                              │
-                              ▼
-                      ┌───────────────┐
-                      │ SEO FINALIZER │
-                      │(meta, links,  │
-                      │ schema)       │
-                      └───────────────┘
-                              │
-                              ▼
-                         [ SANITY ]
+The system operates using a sophisticated multi-stage pipeline where specialized AI agents collaborate to research, draft, and refine content.
+
+```mermaid
+graph TD
+    A[Keyword Queue] --> B[Orchestrator]
+    B --> C[Parallel Research]
+    subgraph "Phase 1: Deep Research"
+        C1[SEO Agent]
+        C2[Medical Agent]
+        C3[Competitor Agent]
+    end
+    C --> C1 & C2 & C3
+    C1 & C2 & C3 --> D[Synthesizer]
+    D --> E[Parallel Drafting]
+    subgraph "Phase 2: Multi-Angle Writing"
+        E1[Clinical Persona]
+        E2[Empathetic Persona]
+        E3[Practical Persona]
+        E4[Innovative Persona/DeepSeek]
+    end
+    E --> E1 & E2 & E3 & E4
+    E1 & E2 & E3 & E4 --> F[The Judge]
+    F --> G[Neural Critique Loop]
+    subgraph "Phase 3: Quality Control"
+        G1[Medical Critic]
+        G2[Editorial Critic]
+        G3[Revision Writer]
+    end
+    G --> G1 & G2
+    G1 & G2 --> G3
+    G3 --> G1 & G2
+    G1 & G2 -- Approved --> H[SEO Finalizer]
+    H --> I[PostgreSQL Storage]
+    H --> J[Sanity CMS Sync]
 ```
 
-## Why Multi-Agent?
+## ✨ New in v2.0
+- **Encore.dev Backend**: Migrated to a high-performance, type-safe backend as a service.
+- **Article Editing Suite**: Direct manual refinement via a premium UI modal with markdown support.
+- **Token Telemetry**: Real-time tracking of generation costs (input + output tokens) stored per-article.
+- **Neural Circuit Visualization**: Real-time "Swarm" visualizer showing agent thoughts and movements.
+- **DeepSeek Integration**: Support for DeepSeek-V3 for innovative writing angles.
 
-| Sequential Pipeline | Multi-Agent System |
-|---------------------|-------------------|
-| One research pass | 3 parallel research agents (SEO + Medical + Competitor) |
-| One draft | 3 drafts with different angles, judge picks best |
-| One review | Critics debate, writer revises in loop |
-| Fixed steps | Orchestrator adapts based on quality |
-| ~5 min/article | ~8-10 min/article, higher quality |
+## 🛠️ Tech Stack
+- **Backend**: [Encore.dev](https://encore.dev) (TypeScript)
+- **Database**: PostgreSQL (Managed)
+- **AI Models**: Claude 3.5 Sonnet & DeepSeek-V3
+- **Frontend**: Vanilla JS + Tailwind CSS + Marked.js
+- **Deployment**: Encore Cloud (Backend) + Vercel (Frontend)
 
-## Agents
+## 🚀 Getting Started
 
-| Agent | Role | Runs In |
-|-------|------|---------|
-| **SEO Research** | Search intent, SERP features, keywords | Parallel |
-| **Medical Research** | Facts, mechanisms, side effects, sources | Parallel |
-| **Competitor Research** | Gaps, angles, differentiation | Parallel |
-| **Synthesizer** | Merges research into content brief | Sequential |
-| **Writer (Clinical)** | Authoritative, science-focused draft | Parallel |
-| **Writer (Empathetic)** | Patient-centered, understanding draft | Parallel |
-| **Writer (Practical)** | Action-oriented, how-to draft | Parallel |
-| **Judge** | Picks best draft, can synthesize elements | Sequential |
-| **Medical Reviewer** | Accuracy, safety, claims verification | Parallel |
-| **Editorial Reviewer** | Clarity, voice, structure, engagement | Parallel |
-| **Revision Writer** | Incorporates critique feedback | Loop |
-| **SEO Finalizer** | Meta tags, internal links, schema | Sequential |
+### 1. Prerequisites
+- [Encore CLI](https://encore.dev/docs/install)
+- [Anthropic API Key](https://console.anthropic.com/)
+- [DeepSeek API Key](https://platform.deepseek.com/)
 
-## Setup
-
-### 1. Install
-
+### 2. Installation
 ```bash
+git clone https://github.com/WimpyvL/zappy-seo-engine.git
+cd zappy-seo-engine
 npm install
-cp .env.example .env
-# Fill in your API keys
 ```
 
-### 2. Airtable Schema
+### 3. Environment Variables
+Add the following to your `.env`:
+```env
+ANTHROPIC_API_KEY=your_key
+DEEPSEEK_API_KEY=your_key
+```
 
-Same as before:
-- **Keywords**: keyword, status, priority, etc.
-- **Content**: title, body, quality_score, iterations, etc.
-- **Clusters**: for topic organization
-
-### 3. Run
-
+### 4. Running Locally
 ```bash
-# Test mode (no Airtable/Sanity, just see output)
-npm run test
-
-# Test with specific keyword
-npm run test -- "semaglutide vs tirzepatide"
-
-# Production: single keyword
-npm run generate -- "ozempic side effects"
-
-# Production: batch from Airtable
-npm run generate
-npm run batch  # 10 at a time
+encore run
 ```
+The dashboard will be available at `http://localhost:4000/ui`.
 
-## Quality Thresholds
+## 📊 Token Usage & Economics
+The factory now audits every generation. Total tokens are aggregated across all 6 phases:
+1. **Research**: ~9k tokens
+2. **Synthesis**: ~6k tokens
+3. **Drafting**: ~30k tokens (parallel drafts)
+4. **Judging**: ~4k tokens
+5. **Critique**: ~10k tokens/loop
+6. **Finalization**: ~8k tokens
 
-The critique loop continues until:
-- **Medical Reviewer** approves (no dangerous claims)
-- **Editorial Reviewer** scores >= 8/10
-- OR max 3 revisions reached
+Average total cost per medical insight: **60k - 80k tokens**.
 
-Articles scoring < 7 go to manual review in Airtable.
+## 🛡️ Medical Quality Standards
+Every article must pass:
+- **Medical Critic**: Zero dangerous claims, mandatory citations, clear clinical disclaimers.
+- **Editorial Critic**: Clarity score >= 8/10, tone check for "Radical Empathy".
+- **The Judge**: Cross-references the original research brief for coverage completeness.
 
-## Cost Estimate
-
-| Phase | Claude Calls | ~Tokens |
-|-------|-------------|---------|
-| Research (3 parallel) | 3 | ~6K in, ~3K out |
-| Synthesis | 1 | ~4K in, ~2K out |
-| Drafting (3 parallel) | 3 | ~3K in, ~12K out |
-| Judge | 1-2 | ~8K in, ~2K out |
-| Critique (2 parallel) | 2-6 | ~4K in, ~2K out |
-| Revision | 0-3 | ~5K in, ~4K out |
-| SEO | 1 | ~4K in, ~4K out |
-
-**Total**: ~$1.50-3.00 per article (varies with revisions)
-
-## Adding Leny
-
-When Leny is ready, add as Agent 13:
-
-```typescript
-// In src/agents/leny.ts
-export async function lenyValidationAgent(draft: ArticleDraft): Promise<LenyResult> {
-  const response = await fetch(process.env.LENY_API_URL, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${process.env.LENY_API_KEY}` },
-    body: JSON.stringify({ content: draft.body })
-  });
-  return response.json();
-}
-```
-
-Add to critique loop in orchestrator. Leny becomes the medical ground truth.
-
-## Customization
-
-### Voice
-Edit `src/agents/writers.ts` - the `WRITER_BASE_SYSTEM` prompt.
-
-### Quality Bar
-Edit `src/orchestrator/index.ts`:
-```typescript
-maxRevisions: 3  // More iterations = higher quality, more cost
-```
-
-### Research Depth
-Edit `src/agents/research.ts` prompts.
+---
+*Built for Zappy Health — Redefining high-fidelity medical content automation.*
