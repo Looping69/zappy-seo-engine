@@ -1,8 +1,12 @@
+import { api } from "encore.dev/api";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 // Serve the built React app static assets
 export const assets = api.static({
     expose: true,
     path: "/assets",
-    dir: "../web/dist/assets"
+    dir: "./dist/assets"
 });
 
 // Serve the dashboard (React App Entry)
@@ -10,7 +14,7 @@ export const dashboard = api.raw(
     { expose: true, method: "GET", path: "/ui/*path" },
     async (req, res) => {
         try {
-            const html = await readFile(join(process.cwd(), "web", "dist", "index.html"), "utf-8");
+            const html = await readFile(join(process.cwd(), "frontend", "dist", "index.html"), "utf-8");
             res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
             res.end(html);
         } catch (error) {
