@@ -19,7 +19,7 @@ export const dashboard = api.raw(
 
 // Serve the swarm visualizer HTML using raw endpoint
 export const swarm = api.raw(
-    { expose: true, method: "GET", path: "/ui/swarm" },
+    { expose: true, method: "GET", path: "/ui/swarm.html" },
     async (req, res) => {
         try {
             const html = await readFile(join(process.cwd(), "public", "swarm.html"), "utf-8");

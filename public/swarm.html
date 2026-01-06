@@ -117,7 +117,7 @@
                         <span class="text-slate-900 text-[11px] font-black uppercase tracking-widest">Quantum State
                             Live</span>
                     </div>
-                    <a href="/ui"
+                    <a href="index.html"
                         class="bg-slate-900 text-white px-6 py-2.5 rounded-full text-[11px] font-black uppercase transition-all hover:scale-105 active:scale-95 shadow-lg shadow-slate-900/10">Dashboard</a>
                 </div>
                 <button onclick="resetCamera()"
@@ -160,6 +160,7 @@
     <div id="bubbles-container"></div>
 
     <script>
+        const API_BASE = 'https://zappy-seo-engine-r64i.encoreapi.com';
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         // Lighter scene colors
@@ -480,14 +481,14 @@
 
         async function fetchProgress() {
             try {
-                const res = await fetch('/keywords');
+                const res = await fetch(`${API_BASE}/keywords`);
                 const data = await res.json();
                 const active = data.keywords.find(k => k.status === 'generating');
 
                 isJobActive = !!active; // SET GLOBAL STATE
 
                 if (active) {
-                    const lRes = await fetch(`/content/logs/${active.id}`);
+                    const lRes = await fetch(`${API_BASE}/content/logs/${active.id}`);
                     const lData = await lRes.json();
                     if (lData.logs.length > 0) {
                         const last = lData.logs[lData.logs.length - 1];

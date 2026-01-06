@@ -9,7 +9,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
         rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="/ui/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
@@ -232,7 +232,7 @@
                     <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
                     Agent Swarm Online
                 </div>
-                <a href="/ui/swarm"
+                <a href="swarm.html"
                     class="text-[10px] font-black uppercase text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-all mr-2">
                     Live Swarm
                 </a>
@@ -348,7 +348,7 @@
                                 <span>Synchronized</span>
                             </div>
                         </div>
-                        <iframe src="/ui/swarm" class="w-full h-[600px] border-none"></iframe>
+                        <iframe src="swarm.html" class="w-full h-[600px] border-none"></iframe>
                     </div>
                 </div>
             </div>
@@ -423,6 +423,7 @@
     </div>
 
     <script>
+        const API_BASE = 'https://zappy-seo-engine-r64i.encoreapi.com';
         let currentKeywordId = null;
         let pollTimer = null;
 
@@ -445,7 +446,7 @@
 
         async function refreshStats() {
             try {
-                const res = await fetch('/content/stats');
+                const res = await fetch(`${API_BASE}/content/stats`);
                 const stats = await res.json();
                 document.getElementById('stat-total').innerText = stats.totalKeywords;
                 document.getElementById('stat-published').innerText = stats.publishedKeywords;
@@ -455,7 +456,7 @@
 
         async function refreshKeywords() {
             try {
-                const res = await fetch('/keywords');
+                const res = await fetch(`${API_BASE}/keywords`);
                 const data = await res.json();
                 const container = document.getElementById('panel-keywords');
                 container.innerHTML = '';
@@ -496,7 +497,7 @@
 
         async function refreshContent() {
             try {
-                const res = await fetch('/content');
+                const res = await fetch(`${API_BASE}/content`);
                 const data = await res.json();
                 const container = document.getElementById('panel-content');
                 if (data.records.length === 0) {
@@ -595,7 +596,7 @@
             };
 
             try {
-                const res = await fetch(`/content/${currentArticle.id}`, {
+                const res = await fetch(`${API_BASE}/content/${currentArticle.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedData)
@@ -630,7 +631,7 @@
             const btn = document.getElementById('btn-seed');
             btn.disabled = true; btn.innerText = 'Analyzing...';
             try {
-                await fetch('/keywords/seed', {
+                await fetch(`${API_BASE}/keywords/seed`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ topic })
                 });
@@ -642,13 +643,13 @@
         }
 
         async function startSingle(id) {
-            await fetch(`/content/generate/${id}`, { method: 'POST' });
+            await fetch(`${API_BASE}/content/generate/${id}`, { method: 'POST' });
             trackKeyword(id);
             refreshAll();
         }
 
         async function handleBatch() {
-            await fetch('/content/batch', { method: 'POST' });
+            await fetch(`${API_BASE}/content/batch`, { method: 'POST' });
             refreshAll();
         }
 
@@ -663,7 +664,7 @@
         async function poll() {
             if (!currentKeywordId) return;
             try {
-                const res = await fetch(`/content/logs/${currentKeywordId}`);
+                const res = await fetch(`${API_BASE}/content/logs/${currentKeywordId}`);
                 const data = await res.json();
                 const last = data.logs[data.logs.length - 1];
 
