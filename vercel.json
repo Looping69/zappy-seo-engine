@@ -1,6 +1,7 @@
 {
     "version": 2,
     "cleanUrls": true,
+    "framework": "vite",
     "rewrites": [
         {
             "source": "/keywords(.*)",
@@ -15,20 +16,8 @@
             "destination": "https://zappy-seo-engine-r64i.encoreapi.com/orchestrator$1"
         },
         {
-            "source": "/ui/favicon.svg",
-            "destination": "/favicon.svg"
-        },
-        {
-            "source": "/ui/swarm",
-            "destination": "/swarm.html"
-        },
-        {
-            "source": "/ui",
-            "destination": "/index.html"
-        },
-        {
-            "source": "/",
-            "destination": "/index.html"
+            "source": "/(.*)",
+            "destination": "web/dist/$1"
         }
     ]
 }

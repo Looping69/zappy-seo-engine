@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #F97316;
+  --brand-light: #FFF7ED;
+  --slate-900: #0F172A;
+  --slate-500: #64748B;
+  --border: #E2E8F0;
+}
+
+body {
+  @apply bg-[#F8FAFC] text-slate-900 font-sans tracking-[-0.015em] text-[13px] p-4 lg:p-6;
+}
+
+.max-container {
+  @apply max-w-[1560px] mx-auto;
+}
+
+.factory-card {
+  @apply bg-white border border-[#E2E8F0] rounded-[1rem] shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md;
+}
+
+.agent-chip {
+  @apply bg-brand-light text-brand px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase;
+}
+
+.blog-content h1 {
+  @apply text-[2.75rem] font-black leading-[1.1] mb-[2.5rem] text-slate-900 tracking-[-0.04em];
+}
+
+.blog-content h2 {
+  @apply text-[1.75rem] font-black mt-[3.5rem] mb-[1.25rem] text-slate-800 border-l-4 border-brand pl-4 leading-[1.2];
+}
+
+.blog-content p {
+  @apply text-[1.15rem] leading-[1.8] text-slate-600 mb-[1.75rem];
+}
+
+.blog-content ul {
+  @apply list-disc ml-8 mb-8;
+}
+
+.blog-content li {
+  @apply mb-3 text-slate-600 text-[1.1rem] leading-[1.6];
+}

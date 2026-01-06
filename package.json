@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "encore run",
     "start": "encore run",
-    "build": "echo 'No build required for Vercel'",
+    "build": "cd web && npm install && npm run build",
     "dashboard": "encore run"
   },
   "dependencies": {
