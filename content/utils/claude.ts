@@ -1,6 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Lazy initialization for Encore Cloud compatibility
+let _client: Anthropic | null = null;
+
+function getClient(): Anthropic {
+  if (!_client) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error("ANTHROPIC_API_KEY environment variable is not set");
+    }
+    _client = new Anthropic({ apiKey });
+  }
+  return _client;
+}
 
 export interface ClaudeOptions {
   systemPrompt?: string;
@@ -25,7 +37,7 @@ export async function callClaude(
     { role: "user", content: prompt }
   ];
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: "claude-3-5-sonnet-20240620",
     max_tokens: maxTokens,
     messages,
