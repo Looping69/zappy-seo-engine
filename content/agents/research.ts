@@ -1,6 +1,11 @@
 import { callAIJSON } from "../utils/ai.js";
 import type { SEOResearch, MedicalResearch, CompetitorResearch, AgentResult } from "../types.js";
 
+// Debug logging helper
+function debug(agent: string, message: string, data?: unknown) {
+  console.log(`[AGENT:${agent}] ${new Date().toISOString()} | ${message}`, data ? JSON.stringify(data, null, 2).substring(0, 500) : "");
+}
+
 // ============================================================================
 // SEO RESEARCH AGENT
 // ============================================================================
@@ -10,6 +15,8 @@ You understand search intent, SERP features, and what makes content rank for med
 Google's E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is critical for health content.`;
 
 export async function seoResearchAgent(keyword: string): Promise<AgentResult<SEOResearch>> {
+  debug("SEO", `Starting SEO research for: "${keyword}"`);
+
   const prompt = `Analyze this keyword for SEO: "${keyword}"
 
 Context: This is for Zappy Health, a telehealth company specializing in GLP-1 weight loss medications, men's health, women's health, and hair loss.
@@ -33,9 +40,12 @@ Output JSON only:
 }`;
 
   try {
+    debug("SEO", "Calling AI for SEO analysis...");
     const res = await callAIJSON<SEOResearch>(prompt, { systemPrompt: SEO_SYSTEM });
+    debug("SEO", "SEO research completed successfully", { tokens: res.usage.total_tokens, intent: res.data.search_intent });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
+    debug("SEO", "SEO research FAILED", { error: String(error) });
     return { success: false, error: String(error) };
   }
 }
@@ -49,6 +59,8 @@ You prioritize accuracy above all else. You know the difference between establis
 You understand FDA guidelines, clinical trial data, and how to communicate medical information responsibly.`;
 
 export async function medicalResearchAgent(keyword: string): Promise<AgentResult<MedicalResearch>> {
+  debug("MEDICAL", `Starting medical research for: "${keyword}"`);
+
   const prompt = `Research the medical aspects of: "${keyword}"
 
 Context: Zappy Health prescribes GLP-1 medications (semaglutide, tirzepatide), testosterone, hair loss treatments, and other telehealth services.
@@ -74,12 +86,15 @@ Output JSON only:
 }`;
 
   try {
+    debug("MEDICAL", "Calling AI for medical research...");
     const res = await callAIJSON<MedicalResearch>(prompt, {
       systemPrompt: MEDICAL_SYSTEM,
       maxTokens: 3000
     });
+    debug("MEDICAL", "Medical research completed successfully", { tokens: res.usage.total_tokens, factsCount: res.data.key_facts?.length });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
+    debug("MEDICAL", "Medical research FAILED", { error: String(error) });
     return { success: false, error: String(error) };
   }
 }
@@ -93,6 +108,8 @@ You understand what makes content successful, identify gaps in existing coverage
 You think strategically about differentiation.`;
 
 export async function competitorResearchAgent(keyword: string): Promise<AgentResult<CompetitorResearch>> {
+  debug("COMPETITOR", `Starting competitor research for: "${keyword}"`);
+
   const prompt = `Analyze what competitors likely have for: "${keyword}"
 
 Context: Zappy Health competes with Hims, Ro, Noom, WeightWatchers, and traditional healthcare content from WebMD, Healthline, Mayo Clinic.
@@ -126,9 +143,12 @@ Output JSON only:
 }`;
 
   try {
+    debug("COMPETITOR", "Calling AI for competitor analysis...");
     const res = await callAIJSON<CompetitorResearch>(prompt, { systemPrompt: COMPETITOR_SYSTEM });
+    debug("COMPETITOR", "Competitor research completed successfully", { tokens: res.usage.total_tokens, gapsCount: res.data.content_gaps?.length });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
+    debug("COMPETITOR", "Competitor research FAILED", { error: String(error) });
     return { success: false, error: String(error) };
   }
 }

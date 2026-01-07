@@ -27,26 +27,29 @@ export class ContentOrchestrator {
       errors: [],
       log: []
     };
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`[ORCHESTRATOR] Starting pipeline for keyword: "${keyword.keyword}"`);
+    console.log(`${'='.repeat(60)}\n`);
   }
 
   private log(message: string, emoji = "•") {
     const entry = `${emoji} ${message}`;
     this.state.log.push(entry);
     if (this.verbose) {
-      console.log(`  ${entry}`);
+      console.log(`  [PIPELINE] ${entry}`);
     }
   }
 
   private logPhase(phase: string) {
     if (this.verbose) {
-      console.log(`\n  ───────────────────────`);
-      console.log(`  ${phase.toUpperCase()}`);
-      console.log(`  ───────────────────────`);
+      console.log(`\n  ${'─'.repeat(40)}`);
+      console.log(`  [PHASE] ${phase.toUpperCase()}`);
+      console.log(`  ${'─'.repeat(40)}`);
     }
   }
 
   async logProgress(percent: number, step: string) {
-    console.log(`REPORT_PROGRESS: ${percent}|${step}`);
+    console.log(`[PROGRESS] ${percent}% | ${step}`);
   }
 
   // ============================================================================
