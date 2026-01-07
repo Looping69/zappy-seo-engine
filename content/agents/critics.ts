@@ -132,6 +132,7 @@ export async function runCritique(draft: ArticleDraft): Promise<{
   editorial: EditorialCritique | null;
   approved: boolean;
   revisionNeeded: string[];
+  usage: { total_tokens: number };
 }> {
   // Run both critics in parallel
   const [medicalResult, editorialResult] = await Promise.all([

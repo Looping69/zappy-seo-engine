@@ -22,7 +22,7 @@ graph TD
         E1[Clinical Persona]
         E2[Empathetic Persona]
         E3[Practical Persona]
-        E4[Innovative Persona/DeepSeek]
+        E4[Innovative Persona/Gemini]
     end
     E --> E1 & E2 & E3 & E4
     E1 & E2 & E3 & E4 --> F[The Judge]
@@ -45,12 +45,13 @@ graph TD
 - **Article Editing Suite**: Direct manual refinement via a premium UI modal with markdown support.
 - **Token Telemetry**: Real-time tracking of generation costs (input + output tokens) stored per-article.
 - **Neural Circuit Visualization**: Real-time "Swarm" visualizer showing agent thoughts and movements.
-- **DeepSeek Integration**: Support for DeepSeek-V3 for innovative writing angles.
+- **Double-Agent Drafting**: Simultaneously generates drafts using Claude 3.5 and Gemini 2.0.
+- **Innovative Persona**: Support for Gemini 2.0 for innovative writing angles.
 
 ## 🛠️ Tech Stack
 - **Backend**: [Encore.dev](https://encore.dev) (TypeScript)
 - **Database**: PostgreSQL (Managed)
-- **AI Models**: Claude 3.5 Sonnet & DeepSeek-V3
+- **AI Models**: Claude 3.5 Sonnet & Gemini 2.0
 - **Frontend**: Vanilla JS + Tailwind CSS + Marked.js
 - **Deployment**: Encore Cloud (Backend) + Vercel (Frontend)
 
@@ -59,7 +60,7 @@ graph TD
 ### 1. Prerequisites
 - [Encore CLI](https://encore.dev/docs/install)
 - [Anthropic API Key](https://console.anthropic.com/)
-- [DeepSeek API Key](https://platform.deepseek.com/)
+- [Gemini API Key](https://aistudio.google.com/)
 
 ### 2. Installation
 ```bash
@@ -72,7 +73,7 @@ npm install
 Add the following to your `.env`:
 ```env
 ANTHROPIC_API_KEY=your_key
-DEEPSEEK_API_KEY=your_key
+GEMINI_API_KEY=your_key
 ```
 
 ### 4. Running Locally

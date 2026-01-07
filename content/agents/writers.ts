@@ -1,5 +1,5 @@
 import { callAIJSON } from "../utils/ai.js";
-import { callDeepSeekJSON } from "../utils/deepseek.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type { SynthesizedResearch, ArticleDraft, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -62,7 +62,7 @@ async function writeArticle(
   angle: keyof typeof WRITER_ANGLES,
   keyword: string,
   research: SynthesizedResearch,
-  useDeepSeek = false
+  useGemini = false
 ): Promise<AgentResult<ArticleDraft>> {
 
   const prompt = `Write an article for: "${keyword}"
@@ -91,8 +91,8 @@ Output JSON only:
 
   try {
     let res;
-    if (useDeepSeek) {
-      res = await callDeepSeekJSON<ArticleDraft>(prompt, {
+    if (useGemini) {
+      res = await callGeminiJSON<ArticleDraft>(prompt, {
         systemPrompt: WRITER_ANGLES[angle],
         maxTokens: 8000
       });
@@ -118,8 +118,9 @@ export const writeEmpathetic = (keyword: string, research: SynthesizedResearch) 
 export const writePractical = (keyword: string, research: SynthesizedResearch) =>
   writeArticle("practical", keyword, research);
 
-export const writeDeepSeek = (keyword: string, research: SynthesizedResearch) =>
+export const writeGemini = (keyword: string, research: SynthesizedResearch) =>
   writeArticle("innovative", keyword, research, true);
+
 
 // ============================================================================
 // REVISION WRITER - Takes critique and revises
