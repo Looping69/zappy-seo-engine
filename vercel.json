@@ -1,18 +1,45 @@
 {
     "version": 2,
     "cleanUrls": true,
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "*"
+                },
+                {
+                    "key": "Access-Control-Allow-Methods",
+                    "value": "GET, POST, PATCH, DELETE, OPTIONS"
+                },
+                {
+                    "key": "Access-Control-Allow-Headers",
+                    "value": "Content-Type"
+                }
+            ]
+        }
+    ],
     "rewrites": [
         {
-            "source": "/keywords(.*)",
-            "destination": "https://zappy-seo-engine-r64i.encoreapi.com/keywords$1"
+            "source": "/keywords/:path*",
+            "destination": "https://staging-zappy-seo-engine-r64i.encr.app/keywords/:path*"
         },
         {
-            "source": "/content(.*)",
-            "destination": "https://zappy-seo-engine-r64i.encoreapi.com/content$1"
+            "source": "/keywords",
+            "destination": "https://staging-zappy-seo-engine-r64i.encr.app/keywords"
         },
         {
-            "source": "/orchestrator(.*)",
-            "destination": "https://zappy-seo-engine-r64i.encoreapi.com/orchestrator$1"
+            "source": "/content/:path*",
+            "destination": "https://staging-zappy-seo-engine-r64i.encr.app/content/:path*"
+        },
+        {
+            "source": "/content",
+            "destination": "https://staging-zappy-seo-engine-r64i.encr.app/content"
+        },
+        {
+            "source": "/swarm",
+            "destination": "/frontend/swarm.html"
         },
         {
             "source": "/ui/swarm",
@@ -27,8 +54,8 @@
             "destination": "/frontend/index.html"
         },
         {
-            "source": "/ui/(.*)",
-            "destination": "/frontend/$1"
+            "source": "/ui/:path*",
+            "destination": "/frontend/:path*"
         }
     ]
 }
