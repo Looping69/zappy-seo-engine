@@ -195,6 +195,15 @@ export const updateArticle = api(
     }
 );
 
+// Delete a content record
+export const deleteArticle = api(
+    { expose: true, method: "DELETE", path: "/content/:id" },
+    async ({ id }: { id: number }): Promise<{ success: boolean }> => {
+        await db.exec`DELETE FROM content_records WHERE id = ${id}`;
+        return { success: true };
+    }
+);
+
 // Get dashboard stats
 export const getStats = api(
     { expose: true, method: "GET", path: "/content/stats" },

@@ -1,4 +1,4 @@
-import { callAIJSON } from "../utils/ai.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type {
   SEOResearch,
   MedicalResearch,
@@ -54,7 +54,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<SynthesizedResearch>(prompt, {
+    const res = await callGeminiJSON<SynthesizedResearch>(prompt, {
       systemPrompt: SYNTHESIZER_SYSTEM,
       maxTokens: 4000
     });

@@ -1,5 +1,4 @@
-import { callAIJSON } from "../utils/ai.js";
-import { callGeminiJSON } from "../utils/gemini.js";
+import { callClaudeJSON } from "../utils/claude.js";
 import type { SynthesizedResearch, ArticleDraft, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -61,8 +60,7 @@ Tone: Forward-thinking, energetic, and optimistic health expert.`
 async function writeArticle(
   angle: keyof typeof WRITER_ANGLES,
   keyword: string,
-  research: SynthesizedResearch,
-  useGemini = false
+  research: SynthesizedResearch
 ): Promise<AgentResult<ArticleDraft>> {
 
   const prompt = `Write an article for: "${keyword}"
@@ -90,18 +88,10 @@ Output JSON only:
 }`;
 
   try {
-    let res;
-    if (useGemini) {
-      res = await callGeminiJSON<ArticleDraft>(prompt, {
-        systemPrompt: WRITER_ANGLES[angle],
-        maxTokens: 8000
-      });
-    } else {
-      res = await callAIJSON<ArticleDraft>(prompt, {
-        systemPrompt: WRITER_ANGLES[angle],
-        maxTokens: 8000
-      });
-    }
+    const res = await callClaudeJSON<ArticleDraft>(prompt, {
+      systemPrompt: WRITER_ANGLES[angle],
+      maxTokens: 8000
+    });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
     return { success: false, error: String(error) };
@@ -118,8 +108,8 @@ export const writeEmpathetic = (keyword: string, research: SynthesizedResearch) 
 export const writePractical = (keyword: string, research: SynthesizedResearch) =>
   writeArticle("practical", keyword, research);
 
-export const writeGemini = (keyword: string, research: SynthesizedResearch) =>
-  writeArticle("innovative", keyword, research, true);
+export const writeInnovative = (keyword: string, research: SynthesizedResearch) =>
+  writeArticle("innovative", keyword, research);
 
 
 // ============================================================================
@@ -164,7 +154,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<ArticleDraft>(prompt, {
+    const res = await callClaudeJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
       maxTokens: 8000
     });

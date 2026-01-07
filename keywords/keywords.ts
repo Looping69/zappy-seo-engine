@@ -133,3 +133,12 @@ export const list = api(
         return { keywords };
     }
 );
+
+// Delete keyword by ID
+export const remove = api(
+    { expose: true, method: "DELETE", path: "/keywords/:id" },
+    async ({ id }: IdParams): Promise<{ success: boolean }> => {
+        await db.exec`DELETE FROM keywords WHERE id = ${id}`;
+        return { success: true };
+    }
+);

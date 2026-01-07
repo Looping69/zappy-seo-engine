@@ -1,4 +1,4 @@
-import { callAIJSON } from "../utils/ai.js";
+import { callClaudeJSON } from "../utils/claude.js";
 import type { ArticleDraft, FinalArticle, SEOResearch, AgentResult } from "../types.js";
 
 const SEO_FINALIZER_SYSTEM = `You are an SEO specialist finalizing content for publication.
@@ -68,7 +68,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<FinalArticle>(prompt, {
+    const res = await callClaudeJSON<FinalArticle>(prompt, {
       systemPrompt: SEO_FINALIZER_SYSTEM,
       maxTokens: 8000
     });

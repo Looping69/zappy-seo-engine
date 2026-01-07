@@ -1,7 +1,7 @@
 import { parallel } from "./utils/claude.js";
 import { seoResearchAgent, medicalResearchAgent, competitorResearchAgent } from "./agents/research.js";
 import { synthesizerAgent } from "./agents/synthesizer.js";
-import { writeClinical, writeEmpathetic, writePractical, writeGemini, revisionWriter } from "./agents/writers.js";
+import { writeClinical, writeEmpathetic, writePractical, writeInnovative, revisionWriter } from "./agents/writers.js";
 import { judgeAgent } from "./agents/judge.js";
 import { runCritique } from "./agents/critics.js";
 import { seoFinalizerAgent } from "./agents/seo.js";
@@ -193,7 +193,7 @@ export class ContentOrchestrator {
       () => writeClinical(keyword, research),
       () => writeEmpathetic(keyword, research),
       () => writePractical(keyword, research),
-      () => writeGemini(keyword, research)
+      () => writeInnovative(keyword, research)
     ]);
 
     const drafts = [];

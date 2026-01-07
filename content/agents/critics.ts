@@ -1,4 +1,4 @@
-import { callAIJSON } from "../utils/ai.js";
+import { callClaudeJSON } from "../utils/claude.js";
 import type { ArticleDraft, MedicalCritique, EditorialCritique, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -52,7 +52,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<MedicalCritique>(prompt, {
+    const res = await callClaudeJSON<MedicalCritique>(prompt, {
       systemPrompt: MEDICAL_REVIEWER_SYSTEM,
       maxTokens: 2000
     });
@@ -113,7 +113,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<EditorialCritique>(prompt, {
+    const res = await callClaudeJSON<EditorialCritique>(prompt, {
       systemPrompt: EDITORIAL_REVIEWER_SYSTEM,
       maxTokens: 2500
     });

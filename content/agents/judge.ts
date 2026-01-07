@@ -1,4 +1,4 @@
-import { callAIJSON, callAI } from "../utils/ai.js";
+import { callClaudeJSON } from "../utils/claude.js";
 import type { ArticleDraft, SynthesizedResearch, AgentResult } from "../types.js";
 
 const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
@@ -72,7 +72,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<JudgeDecision>(prompt, {
+    const res = await callClaudeJSON<JudgeDecision>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 2000
     });
@@ -135,7 +135,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callAIJSON<ArticleDraft>(prompt, {
+    const res = await callClaudeJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 8000
     });

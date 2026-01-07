@@ -1,4 +1,4 @@
-import { callAIJSON } from "../utils/ai.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type { SEOResearch, MedicalResearch, CompetitorResearch, AgentResult } from "../types.js";
 
 // Debug logging helper
@@ -41,7 +41,7 @@ Output JSON only:
 
   try {
     debug("SEO", "Calling AI for SEO analysis...");
-    const res = await callAIJSON<SEOResearch>(prompt, { systemPrompt: SEO_SYSTEM });
+    const res = await callGeminiJSON<SEOResearch>(prompt, { systemPrompt: SEO_SYSTEM });
     debug("SEO", "SEO research completed successfully", { tokens: res.usage.total_tokens, intent: res.data.search_intent });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -87,7 +87,7 @@ Output JSON only:
 
   try {
     debug("MEDICAL", "Calling AI for medical research...");
-    const res = await callAIJSON<MedicalResearch>(prompt, {
+    const res = await callGeminiJSON<MedicalResearch>(prompt, {
       systemPrompt: MEDICAL_SYSTEM,
       maxTokens: 3000
     });
@@ -144,7 +144,7 @@ Output JSON only:
 
   try {
     debug("COMPETITOR", "Calling AI for competitor analysis...");
-    const res = await callAIJSON<CompetitorResearch>(prompt, { systemPrompt: COMPETITOR_SYSTEM });
+    const res = await callGeminiJSON<CompetitorResearch>(prompt, { systemPrompt: COMPETITOR_SYSTEM });
     debug("COMPETITOR", "Competitor research completed successfully", { tokens: res.usage.total_tokens, gapsCount: res.data.content_gaps?.length });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
