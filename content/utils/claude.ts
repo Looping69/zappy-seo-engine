@@ -1,4 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { secret } from "encore.dev/config";
+
+// Encore secret for Anthropic API key
+const anthropicApiKey = secret("ANTHROPIC_API_KEY");
 
 // Debug logging helper
 function debug(message: string, data?: unknown) {
@@ -10,11 +14,11 @@ let _client: Anthropic | null = null;
 
 function getClient(): Anthropic {
   if (!_client) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = anthropicApiKey();
     debug(`Initializing Anthropic client, API key present: ${!!apiKey}`);
     if (!apiKey) {
       debug("ERROR: ANTHROPIC_API_KEY not set!");
-      throw new Error("ANTHROPIC_API_KEY environment variable is not set");
+      throw new Error("ANTHROPIC_API_KEY secret is not set");
     }
     _client = new Anthropic({ apiKey });
     debug("Anthropic client initialized successfully");

@@ -32,6 +32,21 @@ export const swarm = api.raw(
     }
 );
 
+// Alias for /swarm (used by iframe for Vercel compatibility)
+export const swarmAlias = api.raw(
+    { expose: true, method: "GET", path: "/swarm" },
+    async (req, res) => {
+        try {
+            const html = await readFile(join(process.cwd(), "frontend", "swarm.html"), "utf-8");
+            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+            res.end(html);
+        } catch (error) {
+            res.writeHead(500, { "Content-Type": "text/plain" });
+            res.end("Error loading swarm visualizer");
+        }
+    }
+);
+
 // Redirect root to dashboard
 export const home = api.raw(
     { expose: true, method: "GET", path: "/" },

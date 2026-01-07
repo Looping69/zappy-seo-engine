@@ -368,7 +368,7 @@
                                 <span>Synchronized</span>
                             </div>
                         </div>
-                        <iframe src="/ui/swarm" class="w-full h-[600px] border-none"></iframe>
+                        <iframe src="/swarm" class="w-full h-[600px] border-none"></iframe>
                     </div>
                 </div>
 
@@ -815,6 +815,12 @@
                     }
                 }
             } catch (e) { }
+        }
+
+        function refreshAll() {
+            refreshKeywords();
+            refreshStats();
+            refreshContent();
         }
 
         refreshAll();

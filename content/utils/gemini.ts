@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import "dotenv/config";
+import { secret } from "encore.dev/config";
+
+// Encore secret for Gemini API key
+const geminiApiKey = secret("GEMINI_API_KEY");
 
 // Debug logging helper
 function debug(message: string, data?: unknown) {
@@ -11,11 +14,11 @@ let _genAI: GoogleGenerativeAI | null = null;
 
 function getGenAI(): GoogleGenerativeAI {
     if (!_genAI) {
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = geminiApiKey();
         debug(`Initializing Gemini client, API key present: ${!!apiKey}`);
         if (!apiKey) {
             debug("ERROR: GEMINI_API_KEY not set!");
-            throw new Error("GEMINI_API_KEY environment variable is not set");
+            throw new Error("GEMINI_API_KEY secret is not set");
         }
         _genAI = new GoogleGenerativeAI(apiKey);
         debug("Gemini client initialized successfully");
