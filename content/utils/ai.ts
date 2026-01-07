@@ -12,8 +12,13 @@ function debug(message: string, data?: unknown) {
  */
 function isAnthropicMissing(): boolean {
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    const missing = !anthropicKey || anthropicKey.startsWith("sk-ant-") || anthropicKey.includes("...");
-    debug(`Checking Anthropic key: ${missing ? "MISSING/INVALID" : "PRESENT"}`);
+    // Key is missing if: not set, empty, or contains placeholder text
+    const missing = !anthropicKey ||
+        anthropicKey.trim() === "" ||
+        anthropicKey.includes("...") ||
+        anthropicKey === "your_key" ||
+        anthropicKey === "YOUR_ANTHROPIC_API_KEY_HERE";
+    debug(`Checking Anthropic key: ${missing ? "MISSING/PLACEHOLDER" : "PRESENT"} (length: ${anthropicKey?.length || 0})`);
     return missing;
 }
 
