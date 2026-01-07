@@ -1,15 +1,23 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+// Debug logging helper
+function debug(message: string, data?: unknown) {
+  console.log(`[CLAUDE-DEBUG] ${new Date().toISOString()} | ${message}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
 // Lazy initialization for Encore Cloud compatibility
 let _client: Anthropic | null = null;
 
 function getClient(): Anthropic {
   if (!_client) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
+    debug(`Initializing Anthropic client, API key present: ${!!apiKey}`);
     if (!apiKey) {
+      debug("ERROR: ANTHROPIC_API_KEY not set!");
       throw new Error("ANTHROPIC_API_KEY environment variable is not set");
     }
     _client = new Anthropic({ apiKey });
+    debug("Anthropic client initialized successfully");
   }
   return _client;
 }
@@ -32,27 +40,35 @@ export async function callClaude(
   options: ClaudeOptions = {}
 ): Promise<AIResult> {
   const { systemPrompt, maxTokens = 4000, temperature = 0.7 } = options;
+  debug("callClaude called", { promptLength: prompt.length, maxTokens, temperature, hasSystemPrompt: !!systemPrompt });
 
   const messages: Anthropic.MessageParam[] = [
     { role: "user", content: prompt }
   ];
 
-  const response = await getClient().messages.create({
-    model: "claude-3-5-sonnet-20240620",
-    max_tokens: maxTokens,
-    messages,
-    ...(systemPrompt && { system: systemPrompt }),
-  });
+  try {
+    debug("Making API request to Claude...");
+    const response = await getClient().messages.create({
+      model: "claude-3-5-sonnet-20240620",
+      max_tokens: maxTokens,
+      messages,
+      ...(systemPrompt && { system: systemPrompt }),
+    });
 
-  const textBlock = response.content.find(block => block.type === "text");
-  const text = textBlock?.type === "text" ? textBlock.text : "";
+    const textBlock = response.content.find(block => block.type === "text");
+    const text = textBlock?.type === "text" ? textBlock.text : "";
+    debug("Claude response received", { responseLength: text.length, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens });
 
-  return {
-    text,
-    usage: {
-      total_tokens: response.usage.input_tokens + response.usage.output_tokens
-    }
-  };
+    return {
+      text,
+      usage: {
+        total_tokens: response.usage.input_tokens + response.usage.output_tokens
+      }
+    };
+  } catch (error) {
+    debug("ERROR in callClaude", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
+    throw error;
+  }
 }
 
 export function parseJSON<T>(text: string): T {

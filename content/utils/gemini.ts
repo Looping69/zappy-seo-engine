@@ -1,16 +1,24 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import "dotenv/config";
 
+// Debug logging helper
+function debug(message: string, data?: unknown) {
+    console.log(`[GEMINI-DEBUG] ${new Date().toISOString()} | ${message}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
 // Lazy initialization for Encore Cloud compatibility
 let _genAI: GoogleGenerativeAI | null = null;
 
 function getGenAI(): GoogleGenerativeAI {
     if (!_genAI) {
         const apiKey = process.env.GEMINI_API_KEY;
+        debug(`Initializing Gemini client, API key present: ${!!apiKey}`);
         if (!apiKey) {
+            debug("ERROR: GEMINI_API_KEY not set!");
             throw new Error("GEMINI_API_KEY environment variable is not set");
         }
         _genAI = new GoogleGenerativeAI(apiKey);
+        debug("Gemini client initialized successfully");
     }
     return _genAI;
 }
@@ -43,27 +51,38 @@ export async function callGemini(
         model = "gemini-2.0-flash"
     } = options;
 
-    const geminiModel = getGenAI().getGenerativeModel({
-        model,
-        systemInstruction: systemPrompt
-    });
+    debug("callGemini called", { promptLength: prompt.length, maxTokens, temperature, model, hasSystemPrompt: !!systemPrompt });
 
-    const result = await geminiModel.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature: temperature,
-        },
-    });
+    try {
+        const geminiModel = getGenAI().getGenerativeModel({
+            model,
+            systemInstruction: systemPrompt
+        });
 
-    const response = await result.response;
+        debug("Making API request to Gemini...");
+        const result = await geminiModel.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+                maxOutputTokens: maxTokens,
+                temperature: temperature,
+            },
+        });
 
-    return {
-        text: response.text(),
-        usage: {
-            total_tokens: response.usageMetadata?.totalTokenCount || 0
-        }
-    };
+        const response = await result.response;
+        const text = response.text();
+        const tokens = response.usageMetadata?.totalTokenCount || 0;
+        debug("Gemini response received", { responseLength: text.length, tokens });
+
+        return {
+            text,
+            usage: {
+                total_tokens: tokens
+            }
+        };
+    } catch (error) {
+        debug("ERROR in callGemini", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
+        throw error;
+    }
 }
 
 export function parseJSON<T>(text: string): T {
