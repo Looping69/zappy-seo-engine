@@ -225,22 +225,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="flex items-center gap-3">
-                <div
-                    class="hidden md:flex items-center gap-2 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-orange-100">
-                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
-                    Agent Swarm Online
-                </div>
-                <a href="/ui/swarm"
-                    class="text-[10px] font-black uppercase text-orange-600 border border-orange-200 px-3 py-1.5 rounded-lg hover:bg-orange-50 transition-all mr-2">
-                    Live Swarm
-                </a>
-                <button onclick="handleBatch()"
-                    class="bg-orange-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20">
-                    Deploy Batch
-                </button>
-            </div>
         </header>
 
         <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -322,9 +306,15 @@
                     <button onclick="switchTab('content')" id="tab-content"
                         class="pb-3 text-xs font-black border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all uppercase tracking-tight">Production
                         Library</button>
+                    <button onclick="switchTab('history')" id="tab-history"
+                        class="pb-3 text-xs font-black border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all uppercase tracking-tight">Keyword
+                        History</button>
                     <button onclick="switchTab('logs')" id="tab-logs"
                         class="pb-3 text-xs font-black border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all uppercase tracking-tight">Agent
                         reasoning</button>
+                    <button onclick="switchTab('debug')" id="tab-debug"
+                        class="pb-3 text-xs font-black border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition-all uppercase tracking-tight">Debug
+                        CLI</button>
                 </div>
 
                 <!-- Strategies Panel -->
@@ -335,6 +325,36 @@
                 <!-- Content Panel -->
                 <div id="panel-content" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Articles injected here -->
+                </div>
+
+                <!-- Keyword History Panel -->
+                <div id="panel-history" class="hidden">
+                    <div class="factory-card overflow-hidden">
+                        <div
+                            class="bg-slate-50 border-b border-slate-100 px-6 py-3 flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
+                            <span>All Keywords History</span>
+                            <div class="flex items-center gap-4">
+                                <span id="history-count" class="text-slate-500">0 keywords</span>
+                            </div>
+                        </div>
+                        <div class="p-4 max-h-[600px] overflow-y-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr
+                                        class="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
+                                        <th class="text-left py-3 px-4">Keyword</th>
+                                        <th class="text-left py-3 px-4">Cluster</th>
+                                        <th class="text-left py-3 px-4">Intent</th>
+                                        <th class="text-left py-3 px-4">Status</th>
+                                        <th class="text-left py-3 px-4">Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body">
+                                    <!-- History rows injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Logs Panel -->
@@ -349,6 +369,32 @@
                             </div>
                         </div>
                         <iframe src="/ui/swarm" class="w-full h-[600px] border-none"></iframe>
+                    </div>
+                </div>
+
+                <!-- Debug CLI Panel -->
+                <div id="panel-debug" class="hidden">
+                    <div class="factory-card overflow-hidden border-slate-700 shadow-xl">
+                        <div
+                            class="bg-slate-900 border-b border-slate-700 px-6 py-3 flex justify-between items-center text-[10px] font-black uppercase">
+                            <div class="flex items-center gap-3">
+                                <span class="text-emerald-400">●</span>
+                                <span class="text-slate-400">Pipeline Debug Console</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <button onclick="clearDebugLogs()"
+                                    class="text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                    <span class="text-slate-400">Live</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="debug-terminal"
+                            class="terminal-modern p-4 h-[600px] overflow-y-auto text-xs leading-relaxed">
+                            <div class="text-slate-500 mb-2"># Waiting for pipeline execution...</div>
+                            <div class="text-slate-500"># Select a keyword and click "Deploy" to see debug output</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -427,7 +473,7 @@
         let pollTimer = null;
 
         function switchTab(tab) {
-            ['keywords', 'content', 'logs'].forEach(t => {
+            ['keywords', 'content', 'history', 'logs', 'debug'].forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
                 const panel = document.getElementById(`panel-${t}`);
                 if (t === tab) {
@@ -441,6 +487,8 @@
                 }
             });
             if (tab === 'content') refreshContent();
+            if (tab === 'history') refreshHistory();
+            if (tab === 'debug' && currentKeywordId) refreshDebugLogs();
         }
 
         async function refreshStats() {
@@ -524,6 +572,42 @@
                     </div>
                 `).join('');
             } catch (e) { }
+        }
+
+        async function refreshHistory() {
+            try {
+                const res = await fetch('/keywords');
+                const data = await res.json();
+                const tbody = document.getElementById('history-table-body');
+
+                document.getElementById('history-count').innerText = `${data.keywords.length} keywords`;
+
+                if (data.keywords.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 italic text-xs">No keywords yet</td></tr>`;
+                    return;
+                }
+
+                const statusColors = {
+                    'queued': 'bg-slate-100 text-slate-600',
+                    'generating': 'bg-orange-100 text-orange-600',
+                    'published': 'bg-emerald-100 text-emerald-600',
+                    'error': 'bg-red-100 text-red-600'
+                };
+
+                tbody.innerHTML = data.keywords.map(kw => `
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                        <td class="py-3 px-4 text-sm font-semibold text-slate-800">${kw.keyword}</td>
+                        <td class="py-3 px-4 text-xs text-slate-500">${kw.cluster || '-'}</td>
+                        <td class="py-3 px-4 text-xs text-slate-500">${kw.intent || '-'}</td>
+                        <td class="py-3 px-4">
+                            <span class="text-[9px] font-black uppercase px-2 py-1 rounded ${statusColors[kw.status] || 'bg-slate-100 text-slate-600'}">${kw.status}</span>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-400">${kw.created_at ? new Date(kw.created_at).toLocaleDateString() : '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('History fetch error:', e);
+            }
         }
 
         let currentArticle = null;
@@ -660,6 +744,53 @@
             poll();
         }
 
+        // Debug CLI functions
+        const levelColors = {
+            'INFO': 'text-emerald-400',
+            'WARN': 'text-yellow-400',
+            'ERROR': 'text-red-400',
+            'PHASE': 'text-cyan-400',
+            'AGENT': 'text-purple-400'
+        };
+
+        async function refreshDebugLogs() {
+            if (!currentKeywordId) return;
+            try {
+                const res = await fetch(`/content/debug/${currentKeywordId}`);
+                const data = await res.json();
+                const terminal = document.getElementById('debug-terminal');
+
+                if (data.logs.length === 0) {
+                    terminal.innerHTML = `
+                        <div class="text-slate-500 mb-2"># No debug logs yet for this keyword</div>
+                        <div class="text-slate-500"># Pipeline execution will show here</div>
+                    `;
+                    return;
+                }
+
+                terminal.innerHTML = data.logs.map(log => {
+                    const colorClass = levelColors[log.level] || 'text-slate-400';
+                    const time = new Date(log.timestamp).toLocaleTimeString();
+                    const meta = log.metadata ? ` <span class="text-slate-600">${JSON.stringify(log.metadata)}</span>` : '';
+                    return `<div class="py-0.5"><span class="text-slate-600">[${time}]</span> <span class="${colorClass}">[${log.level}]</span> <span class="text-slate-500">[${log.source}]</span> <span class="text-slate-300">${log.message}</span>${meta}</div>`;
+                }).join('');
+
+                // Auto-scroll to bottom
+                terminal.scrollTop = terminal.scrollHeight;
+            } catch (e) {
+                console.error('Debug log fetch error:', e);
+            }
+        }
+
+        function clearDebugLogs() {
+            const terminal = document.getElementById('debug-terminal');
+            terminal.innerHTML = `
+                <div class="text-slate-500 mb-2"># Console cleared</div>
+                <div class="text-slate-500"># Waiting for pipeline execution...</div>
+            `;
+        }
+
+        // Poll function with debug log refresh
         async function poll() {
             if (!currentKeywordId) return;
             try {
@@ -673,6 +804,9 @@
                     document.getElementById('progress-step').innerText = last.step;
                     document.getElementById('progress-log').innerText = `Observation: Agents are currently in ${last.step}.`;
 
+                    // Also refresh debug logs
+                    refreshDebugLogs();
+
                     if (last.percent === 100 || last.percent < 0) {
                         clearInterval(pollTimer);
                         currentKeywordId = null;
@@ -681,12 +815,6 @@
                     }
                 }
             } catch (e) { }
-        }
-
-        function refreshAll() {
-            refreshKeywords();
-            refreshStats();
-            refreshContent();
         }
 
         refreshAll();

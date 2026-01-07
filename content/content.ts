@@ -45,6 +45,18 @@ export interface LogEntry {
     created_at: Date;
 }
 
+export interface DebugLogEntry {
+    timestamp: Date;
+    level: string;
+    source: string;
+    message: string;
+    metadata: any;
+}
+
+export interface DebugLogsResponse {
+    logs: DebugLogEntry[];
+}
+
 export interface ContentRecord {
     id: number;
     keyword_id: number;
@@ -128,6 +140,24 @@ export const getLogs = api(
         const logs: LogEntry[] = [];
         for await (const row of rows) {
             logs.push(row as LogEntry);
+        }
+        return { logs };
+    }
+);
+
+// Get debug logs for a specific keyword (detailed CLI output)
+export const getDebugLogs = api(
+    { expose: true, method: "GET", path: "/content/debug/:keywordId" },
+    async ({ keywordId }: KeywordIdParams): Promise<DebugLogsResponse> => {
+        const rows = db.query`
+            SELECT timestamp, level, source, message, metadata
+            FROM debug_logs 
+            WHERE keyword_id = ${keywordId} 
+            ORDER BY id ASC
+        `;
+        const logs: DebugLogEntry[] = [];
+        for await (const row of rows) {
+            logs.push(row as DebugLogEntry);
         }
         return { logs };
     }
@@ -218,13 +248,25 @@ const _ = new Subscription(generateTopic, "run-content-generation", {
             `;
         };
 
+        // Helper to save detailed debug logs for CLI output
+        const debugLog = async (level: string, source: string, message: string, metadata?: any) => {
+            await db.exec`
+                INSERT INTO debug_logs (keyword_id, level, source, message, metadata)
+                VALUES (${keywordId}, ${level}, ${source}, ${message}, ${metadata ? JSON.stringify(metadata) : null})
+            `;
+        };
+
         try {
             await logProgress(5, "Initializing AI pipeline...");
+            await debugLog("INFO", "orchestrator", `Pipeline starting for keyword: "${keyword}"`);
+
+            // Clear old debug logs for this keyword
+            await db.exec`DELETE FROM debug_logs WHERE keyword_id = ${keywordId}`;
 
             // Create orchestrator with database logging
             const orchestrator = new ContentOrchestrator(
                 { id: keywordId, keyword },
-                { verbose: true, maxRevisions: 3 }
+                { verbose: true, maxRevisions: 3, debugLog }
             );
 
             // Override logProgress to save to database

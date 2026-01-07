@@ -11,13 +11,17 @@ import type { Keyword, PipelineState, FinalArticle } from "./types.js";
 // ORCHESTRATOR - Coordinates all agents
 // ============================================================================
 
+type DebugLogFn = (level: string, source: string, message: string, metadata?: any) => Promise<void>;
+
 export class ContentOrchestrator {
   private state: PipelineState;
   private verbose: boolean;
   private totalTokens: number = 0;
+  private debugLog: DebugLogFn | null = null;
 
-  constructor(keyword: Keyword, options: { verbose?: boolean; maxRevisions?: number } = {}) {
+  constructor(keyword: Keyword, options: { verbose?: boolean; maxRevisions?: number; debugLog?: DebugLogFn } = {}) {
     this.verbose = options.verbose ?? true;
+    this.debugLog = options.debugLog ?? null;
     this.state = {
       keyword,
       status: "researching",
@@ -32,19 +36,40 @@ export class ContentOrchestrator {
     console.log(`${'='.repeat(60)}\n`);
   }
 
-  private log(message: string, emoji = "•") {
+  private async log(message: string, emoji = "•", level = "INFO", source = "pipeline") {
     const entry = `${emoji} ${message}`;
     this.state.log.push(entry);
     if (this.verbose) {
       console.log(`  [PIPELINE] ${entry}`);
     }
+    if (this.debugLog) {
+      await this.debugLog(level, source, message);
+    }
   }
 
-  private logPhase(phase: string) {
+  private async logPhase(phase: string) {
     if (this.verbose) {
       console.log(`\n  ${'─'.repeat(40)}`);
       console.log(`  [PHASE] ${phase.toUpperCase()}`);
       console.log(`  ${'─'.repeat(40)}`);
+    }
+    if (this.debugLog) {
+      await this.debugLog("PHASE", "orchestrator", phase);
+    }
+  }
+
+  private async logAgent(agent: string, status: "start" | "complete" | "error", details?: string, metadata?: any) {
+    const msg = status === "start"
+      ? `${agent} agent starting...`
+      : status === "complete"
+        ? `${agent} agent complete${details ? `: ${details}` : ""}`
+        : `${agent} agent failed${details ? `: ${details}` : ""}`;
+
+    if (this.verbose) {
+      console.log(`  [AGENT] ${msg}`);
+    }
+    if (this.debugLog) {
+      await this.debugLog("AGENT", agent.toLowerCase(), msg, metadata);
     }
   }
 
@@ -57,13 +82,16 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runResearch(): Promise<boolean> {
-    this.logPhase("PHASE 1: RESEARCH (Parallel)");
+    await this.logPhase("PHASE 1: RESEARCH (Parallel)");
     this.state.status = "researching";
 
     const keyword = this.state.keyword.keyword;
 
     // Run all three research agents in parallel
-    this.log("Launching SEO, Medical, and Competitor research agents...", "🔍");
+    await this.log("Launching SEO, Medical, and Competitor research agents...", "🔍");
+    await this.logAgent("SEO", "start");
+    await this.logAgent("Medical", "start");
+    await this.logAgent("Competitor", "start");
 
     const [seoResult, medicalResult, competitorResult] = await Promise.all([
       seoResearchAgent(keyword),
@@ -74,17 +102,20 @@ export class ContentOrchestrator {
     // Check for failures
     if (!seoResult.success || !seoResult.data) {
       this.state.errors.push(`SEO research failed: ${seoResult.error}`);
-      this.log("SEO research failed", "❌");
+      await this.logAgent("SEO", "error", seoResult.error);
+      await this.log("SEO research failed", "❌", "ERROR", "research");
       return false;
     }
     if (!medicalResult.success || !medicalResult.data) {
       this.state.errors.push(`Medical research failed: ${medicalResult.error}`);
-      this.log("Medical research failed", "❌");
+      await this.logAgent("Medical", "error", medicalResult.error);
+      await this.log("Medical research failed", "❌", "ERROR", "research");
       return false;
     }
     if (!competitorResult.success || !competitorResult.data) {
       this.state.errors.push(`Competitor research failed: ${competitorResult.error}`);
-      this.log("Competitor research failed", "❌");
+      await this.logAgent("Competitor", "error", competitorResult.error);
+      await this.log("Competitor research failed", "❌", "ERROR", "research");
       return false;
     }
 
@@ -96,9 +127,13 @@ export class ContentOrchestrator {
       (medicalResult.usage?.total_tokens || 0) +
       (competitorResult.usage?.total_tokens || 0);
 
-    this.log(`SEO: ${seoResult.data.search_intent} intent, ${seoResult.data.recommended_word_count} words`, "✓");
-    this.log(`Medical: ${medicalResult.data.key_facts.length} key facts identified`, "✓");
-    this.log(`Competitors: ${competitorResult.data.content_gaps.length} gaps found`, "✓");
+    await this.logAgent("SEO", "complete", `${seoResult.data.recommended_word_count} words`, { tokens: seoResult.usage?.total_tokens });
+    await this.logAgent("Medical", "complete", `${medicalResult.data.key_facts.length} facts`, { tokens: medicalResult.usage?.total_tokens });
+    await this.logAgent("Competitor", "complete", `${competitorResult.data.content_gaps.length} gaps`, { tokens: competitorResult.usage?.total_tokens });
+
+    await this.log(`SEO: ${seoResult.data.search_intent} intent, ${seoResult.data.recommended_word_count} words`, "✓");
+    await this.log(`Medical: ${medicalResult.data.key_facts.length} key facts identified`, "✓");
+    await this.log(`Competitors: ${competitorResult.data.content_gaps.length} gaps found`, "✓");
 
     return true;
   }
@@ -108,9 +143,10 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runSynthesis(): Promise<boolean> {
-    this.logPhase("PHASE 2: SYNTHESIZE RESEARCH");
+    await this.logPhase("PHASE 2: SYNTHESIZE RESEARCH");
     this.state.status = "synthesizing";
 
+    await this.logAgent("Synthesizer", "start");
     const result = await synthesizerAgent(
       this.state.keyword.keyword,
       this.state.seoResearch!,
@@ -120,15 +156,17 @@ export class ContentOrchestrator {
 
     if (!result.success || !result.data) {
       this.state.errors.push(`Synthesis failed: ${result.error}`);
-      this.log("Synthesis failed", "❌");
+      await this.logAgent("Synthesizer", "error", result.error);
+      await this.log("Synthesis failed", "❌", "ERROR", "synthesizer");
       return false;
     }
 
     this.state.synthesizedResearch = result.data;
     this.totalTokens += result.usage?.total_tokens || 0;
 
-    this.log(`Angle: "${result.data.primary_angle}"`, "✓");
-    this.log(`Target: ${result.data.word_count} words`, "✓");
+    await this.logAgent("Synthesizer", "complete", `${result.data.word_count} words target`, { tokens: result.usage?.total_tokens });
+    await this.log(`Angle: "${result.data.primary_angle}"`, "✓");
+    await this.log(`Target: ${result.data.word_count} words`, "✓");
 
     return true;
   }
@@ -138,14 +176,18 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runDrafting(): Promise<boolean> {
-    this.logPhase("PHASE 3: DRAFT GENERATION (Parallel)");
+    await this.logPhase("PHASE 3: DRAFT GENERATION (Parallel)");
     this.state.status = "drafting";
 
     const keyword = this.state.keyword.keyword;
     const research = this.state.synthesizedResearch!;
 
     // Generate 4 drafts with different angles in parallel
-    this.log("Generating 4 draft angles: Clinical, Empathetic, Practical, and Gemini Innovative...", "✍️");
+    await this.log("Generating 4 draft angles: Clinical, Empathetic, Practical, and Gemini Innovative...", "✍️");
+    await this.logAgent("Writer-Clinical", "start");
+    await this.logAgent("Writer-Empathetic", "start");
+    await this.logAgent("Writer-Practical", "start");
+    await this.logAgent("Writer-Gemini", "start");
 
     const [clinicalResult, empatheticResult, practicalResult, geminiResult] = await parallel([
       () => writeClinical(keyword, research),
@@ -158,19 +200,31 @@ export class ContentOrchestrator {
 
     if (clinicalResult.success && clinicalResult.data) {
       drafts.push(clinicalResult.data);
-      this.log(`Clinical draft: "${clinicalResult.data.title}"`, "✓");
+      await this.logAgent("Writer-Clinical", "complete", clinicalResult.data.title, { tokens: clinicalResult.usage?.total_tokens });
+      await this.log(`Clinical draft: "${clinicalResult.data.title}"`, "✓");
+    } else {
+      await this.logAgent("Writer-Clinical", "error", clinicalResult.error);
     }
     if (empatheticResult.success && empatheticResult.data) {
       drafts.push(empatheticResult.data);
-      this.log(`Empathetic draft: "${empatheticResult.data.title}"`, "✓");
+      await this.logAgent("Writer-Empathetic", "complete", empatheticResult.data.title, { tokens: empatheticResult.usage?.total_tokens });
+      await this.log(`Empathetic draft: "${empatheticResult.data.title}"`, "✓");
+    } else {
+      await this.logAgent("Writer-Empathetic", "error", empatheticResult.error);
     }
     if (practicalResult.success && practicalResult.data) {
       drafts.push(practicalResult.data);
-      this.log(`Practical draft: "${practicalResult.data.title}"`, "✓");
+      await this.logAgent("Writer-Practical", "complete", practicalResult.data.title, { tokens: practicalResult.usage?.total_tokens });
+      await this.log(`Practical draft: "${practicalResult.data.title}"`, "✓");
+    } else {
+      await this.logAgent("Writer-Practical", "error", practicalResult.error);
     }
     if (geminiResult.success && geminiResult.data) {
       drafts.push(geminiResult.data);
-      this.log(`Gemini Innovative draft: "${geminiResult.data.title}"`, "✓");
+      await this.logAgent("Writer-Gemini", "complete", geminiResult.data.title, { tokens: geminiResult.usage?.total_tokens });
+      await this.log(`Gemini Innovative draft: "${geminiResult.data.title}"`, "✓");
+    } else {
+      await this.logAgent("Writer-Gemini", "error", geminiResult.error);
     }
 
     this.totalTokens += (clinicalResult.usage?.total_tokens || 0) +
@@ -180,7 +234,7 @@ export class ContentOrchestrator {
 
     if (drafts.length < 2) {
       this.state.errors.push("Not enough drafts generated");
-      this.log("Need at least 2 drafts to compare", "❌");
+      await this.log("Need at least 2 drafts to compare", "❌", "ERROR", "drafting");
       return false;
     }
 
@@ -194,15 +248,17 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runJudging(): Promise<boolean> {
-    this.logPhase("PHASE 4: JUDGE EVALUATION");
+    await this.logPhase("PHASE 4: JUDGE EVALUATION");
 
-    this.log("Judge evaluating all drafts...", "⚖️");
+    await this.log("Judge evaluating all drafts...", "⚖️");
+    await this.logAgent("Judge", "start");
 
     const result = await judgeAgent(this.state.drafts!, this.state.synthesizedResearch!);
 
     if (!result.success || !result.data) {
       this.state.errors.push(`Judge failed: ${result.error}`);
-      this.log("Judge evaluation failed", "❌");
+      await this.logAgent("Judge", "error", result.error);
+      await this.log("Judge evaluation failed", "❌", "ERROR", "judge");
       return false;
     }
 
@@ -211,11 +267,12 @@ export class ContentOrchestrator {
     this.state.currentDraft = selectedDraft;
     this.totalTokens += result.usage?.total_tokens || 0;
 
-    this.log(`Winner: Draft ${decision.winner + 1} (${selectedDraft.angle})`, "🏆");
-    this.log(`Reasoning: ${decision.reasoning.substring(0, 100)}...`, "📋");
+    await this.logAgent("Judge", "complete", `Selected: ${selectedDraft.angle}`, { tokens: result.usage?.total_tokens, winner: decision.winner });
+    await this.log(`Winner: Draft ${decision.winner + 1} (${selectedDraft.angle})`, "🏆");
+    await this.log(`Reasoning: ${decision.reasoning.substring(0, 100)}...`, "📋");
 
     if (decision.synthesis_opportunity) {
-      this.log("Synthesized best elements from multiple drafts", "🔀");
+      await this.log("Synthesized best elements from multiple drafts", "🔀");
     }
 
     return true;
@@ -226,11 +283,13 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runCritiqueLoop(): Promise<boolean> {
-    this.logPhase("PHASE 5: CRITIQUE LOOP");
+    await this.logPhase("PHASE 5: CRITIQUE LOOP");
     this.state.status = "critiquing";
 
     while (this.state.revisionCount < this.state.maxRevisions) {
-      this.log(`Critique iteration ${this.state.revisionCount + 1}/${this.state.maxRevisions}...`, "🔍");
+      await this.log(`Critique iteration ${this.state.revisionCount + 1}/${this.state.maxRevisions}...`, "🔍");
+      await this.logAgent("Critic-Medical", "start");
+      await this.logAgent("Critic-Editorial", "start");
 
       // Run medical and editorial critics in parallel
       const critique = await runCritique(this.state.currentDraft!);
@@ -239,24 +298,31 @@ export class ContentOrchestrator {
       // Store critiques
       if (critique.medical) {
         this.state.medicalCritique = critique.medical;
-        this.log(`Medical: ${critique.medical.claims_verified}/${critique.medical.claims_found} claims verified`,
+        await this.logAgent("Critic-Medical", critique.medical.approved ? "complete" : "complete",
+          `${critique.medical.claims_verified}/${critique.medical.claims_found} verified`,
+          { approved: critique.medical.approved });
+        await this.log(`Medical: ${critique.medical.claims_verified}/${critique.medical.claims_found} claims verified`,
           critique.medical.approved ? "✓" : "⚠️");
       }
       if (critique.editorial) {
         this.state.editorialCritique = critique.editorial;
-        this.log(`Editorial: ${critique.editorial.overall_score}/10`,
+        await this.logAgent("Critic-Editorial", "complete",
+          `Score: ${critique.editorial.overall_score}/10`,
+          { approved: critique.editorial.approved, score: critique.editorial.overall_score });
+        await this.log(`Editorial: ${critique.editorial.overall_score}/10`,
           critique.editorial.approved ? "✓" : "⚠️");
       }
 
       // If both approve, we're done
       if (critique.approved) {
-        this.log("Both critics approve! Moving to finalization.", "✅");
+        await this.log("Both critics approve! Moving to finalization.", "✅");
         return true;
       }
 
       // Need revision
       this.state.status = "revising";
-      this.log(`Revisions needed: ${critique.revisionNeeded.length} items`, "📝");
+      await this.log(`Revisions needed: ${critique.revisionNeeded.length} items`, "📝");
+      await this.logAgent("Revision-Writer", "start");
 
       const medicalFeedback = this.state.medicalCritique?.revision_required || [];
       const editorialFeedback = this.state.editorialCritique?.revision_required || [];
@@ -270,17 +336,19 @@ export class ContentOrchestrator {
 
       if (!revisionResult.success || !revisionResult.data) {
         this.state.errors.push(`Revision failed: ${revisionResult.error}`);
-        this.log("Revision failed", "❌");
+        await this.logAgent("Revision-Writer", "error", revisionResult.error);
+        await this.log("Revision failed", "❌", "ERROR", "revision");
         return false;
       }
 
       this.state.currentDraft = revisionResult.data;
       this.state.revisionCount++;
-      this.log(`Revision ${this.state.revisionCount} complete`, "✓");
+      await this.logAgent("Revision-Writer", "complete", `Iteration ${this.state.revisionCount}`, { tokens: revisionResult.usage?.total_tokens });
+      await this.log(`Revision ${this.state.revisionCount} complete`, "✓");
     }
 
     // Max revisions reached
-    this.log(`Max revisions (${this.state.maxRevisions}) reached. Proceeding with current draft.`, "⚠️");
+    await this.log(`Max revisions (${this.state.maxRevisions}) reached. Proceeding with current draft.`, "⚠️", "WARN", "critique");
     return true;
   }
 
@@ -289,10 +357,11 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runFinalization(): Promise<boolean> {
-    this.logPhase("PHASE 6: SEO FINALIZATION");
+    await this.logPhase("PHASE 6: SEO FINALIZATION");
     this.state.status = "finalizing";
 
-    this.log("Optimizing for SEO...", "🎯");
+    await this.log("Optimizing for SEO...", "🎯");
+    await this.logAgent("SEO-Finalizer", "start");
 
     const result = await seoFinalizerAgent(
       this.state.currentDraft!,
@@ -301,7 +370,8 @@ export class ContentOrchestrator {
 
     if (!result.success || !result.data) {
       this.state.errors.push(`Finalization failed: ${result.error}`);
-      this.log("SEO finalization failed", "❌");
+      await this.logAgent("SEO-Finalizer", "error", result.error);
+      await this.log("SEO finalization failed", "❌", "ERROR", "seo");
       return false;
     }
 
@@ -316,10 +386,11 @@ export class ContentOrchestrator {
     this.state.status = "complete";
     this.state.completedAt = new Date();
 
-    this.log(`Final title: "${result.data.title}"`, "✓");
-    this.log(`Internal links: ${result.data.internal_links.length}`, "✓");
-    this.log(`Quality score: ${result.data.quality_score}/10`, "✓");
-    this.log(`Total Token Usage: ${this.totalTokens}`, "💰");
+    await this.logAgent("SEO-Finalizer", "complete", result.data.title, { tokens: result.usage?.total_tokens, links: result.data.internal_links.length });
+    await this.log(`Final title: "${result.data.title}"`, "✓");
+    await this.log(`Internal links: ${result.data.internal_links.length}`, "✓");
+    await this.log(`Quality score: ${result.data.quality_score}/10`, "✓");
+    await this.log(`Total Token Usage: ${this.totalTokens}`, "💰");
 
     return true;
   }
