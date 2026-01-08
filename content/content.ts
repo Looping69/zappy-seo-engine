@@ -246,13 +246,8 @@ export const getStats = api(
 // ============ Background Subscriber with Full AI Pipeline ============
 
 const _ = new Subscription(generateTopic, "run-content-generation", {
-    // Prevent retry loops: AI operations can take 5-10 minutes
-    ackDeadline: "10m", // 10 minutes max processing time
-    maxRetries: 0,      // No retries - if it fails, mark as error
-    retryPolicy: {
-        minBackoff: "1m",  // 1 minute if retry ever happens
-        maxBackoff: "5m",  // 5 minutes max backoff
-    },
+    // Give 10 minutes for AI operations to complete before timeout
+    ackDeadline: "10m",
     handler: async (params: GenerateParams) => {
         const { keywordId, keyword } = params;
 
