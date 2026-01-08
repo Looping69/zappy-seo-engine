@@ -1,5 +1,5 @@
 import { callSmartAIJSON } from "../utils/ai.js";
-import type { SynthesizedResearch, ArticleDraft, AgentResult } from "../types.js";
+import type { SynthesizedResearch, ArticleDraft, AgentResult, HeartbeatFn } from "../types.js";
 
 // ============================================================================
 // WRITER PERSONAS - Different angles/approaches
@@ -76,7 +76,8 @@ const ARTICLE_SCHEMA = {
 async function writeArticle(
   angle: keyof typeof WRITER_ANGLES,
   keyword: string,
-  research: SynthesizedResearch
+  research: SynthesizedResearch,
+  heartbeat?: HeartbeatFn
 ): Promise<AgentResult<ArticleDraft>> {
 
   const prompt = `Write an article for: "${keyword}"
@@ -99,7 +100,9 @@ Output JSON only matching the requested schema.`;
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: WRITER_ANGLES[angle],
       maxTokens: 32000,
-      responseSchema: ARTICLE_SCHEMA
+      responseSchema: ARTICLE_SCHEMA,
+      heartbeat,
+      agentName: `Writer-${angle.charAt(0).toUpperCase() + angle.slice(1)}`
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -108,17 +111,17 @@ Output JSON only matching the requested schema.`;
 }
 
 // Export individual angle writers
-export const writeClinical = (keyword: string, research: SynthesizedResearch) =>
-  writeArticle("clinical", keyword, research);
+export const writeClinical = (keyword: string, research: SynthesizedResearch, heartbeat?: HeartbeatFn) =>
+  writeArticle("clinical", keyword, research, heartbeat);
 
-export const writeEmpathetic = (keyword: string, research: SynthesizedResearch) =>
-  writeArticle("empathetic", keyword, research);
+export const writeEmpathetic = (keyword: string, research: SynthesizedResearch, heartbeat?: HeartbeatFn) =>
+  writeArticle("empathetic", keyword, research, heartbeat);
 
-export const writePractical = (keyword: string, research: SynthesizedResearch) =>
-  writeArticle("practical", keyword, research);
+export const writePractical = (keyword: string, research: SynthesizedResearch, heartbeat?: HeartbeatFn) =>
+  writeArticle("practical", keyword, research, heartbeat);
 
-export const writeInnovative = (keyword: string, research: SynthesizedResearch) =>
-  writeArticle("innovative", keyword, research);
+export const writeInnovative = (keyword: string, research: SynthesizedResearch, heartbeat?: HeartbeatFn) =>
+  writeArticle("innovative", keyword, research, heartbeat);
 
 
 // ============================================================================
@@ -134,7 +137,8 @@ If feedback conflicts, prioritize medical accuracy over style.`;
 export async function revisionWriter(
   currentDraft: ArticleDraft,
   medicalFeedback: string[],
-  editorialFeedback: string[]
+  editorialFeedback: string[],
+  heartbeat?: HeartbeatFn
 ): Promise<AgentResult<ArticleDraft>> {
 
   const prompt = `Revise this article based on feedback.
@@ -158,7 +162,9 @@ Output JSON only matching the requested schema.`;
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
       maxTokens: 32000,
-      responseSchema: ARTICLE_SCHEMA
+      responseSchema: ARTICLE_SCHEMA,
+      heartbeat,
+      agentName: "Writer-Revision"
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

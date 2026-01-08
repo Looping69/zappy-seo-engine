@@ -30,6 +30,9 @@ export interface ClaudeOptions {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  // Heartbeat callback to signal progress during long AI operations
+  heartbeat?: (agentName: string, status: string) => Promise<void>;
+  agentName?: string;
 }
 
 export interface AIResult {
@@ -43,7 +46,7 @@ export async function callClaude(
   prompt: string,
   options: ClaudeOptions = {}
 ): Promise<AIResult> {
-  const { systemPrompt, maxTokens = 4000, temperature = 0.7 } = options;
+  const { systemPrompt, maxTokens = 4000, temperature = 0.7, heartbeat, agentName = "claude" } = options;
   debug("callClaude called", { promptLength: prompt.length, maxTokens, temperature, hasSystemPrompt: !!systemPrompt });
 
   const messages: Anthropic.MessageParam[] = [
@@ -51,6 +54,11 @@ export async function callClaude(
   ];
 
   try {
+    // Signal heartbeat before AI call
+    if (heartbeat) {
+      await heartbeat(agentName, "calling AI...").catch(() => { });
+    }
+
     debug("Making API request to Claude...");
     const response = await getClient().messages.create({
       model: "claude-3-7-sonnet-20250219",
@@ -61,12 +69,18 @@ export async function callClaude(
 
     const textBlock = response.content.find(block => block.type === "text");
     const text = textBlock?.type === "text" ? textBlock.text : "";
+    const totalTokens = response.usage.input_tokens + response.usage.output_tokens;
     debug("Claude response received", { responseLength: text.length, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens });
+
+    // Signal heartbeat after AI call completes
+    if (heartbeat) {
+      await heartbeat(agentName, `AI response received (${totalTokens} tokens)`).catch(() => { });
+    }
 
     return {
       text,
       usage: {
-        total_tokens: response.usage.input_tokens + response.usage.output_tokens
+        total_tokens: totalTokens
       }
     };
   } catch (error) {

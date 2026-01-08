@@ -1,5 +1,5 @@
 import { callSmartAIJSON } from "../utils/ai.js";
-import type { ArticleDraft, MedicalCritique, EditorialCritique, AgentResult } from "../types.js";
+import type { ArticleDraft, MedicalCritique, EditorialCritique, AgentResult, HeartbeatFn } from "../types.js";
 
 // ============================================================================
 // MEDICAL REVIEWER AGENT
@@ -42,7 +42,7 @@ const MEDICAL_CRITIQUE_SCHEMA = {
   required: ["claims_found", "claims_verified", "overall_accuracy", "approved", "revision_required"]
 };
 
-export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentResult<MedicalCritique>> {
+export async function medicalReviewerAgent(draft: ArticleDraft, heartbeat?: HeartbeatFn): Promise<AgentResult<MedicalCritique>> {
   const prompt = `Review this article for medical accuracy.
 
 Title: ${draft.title}
@@ -64,7 +64,9 @@ Analyze the article and output JSON:
     const res = await callSmartAIJSON<MedicalCritique>(prompt, {
       systemPrompt: MEDICAL_REVIEWER_SYSTEM,
       maxTokens: 4000,
-      responseSchema: MEDICAL_CRITIQUE_SCHEMA
+      responseSchema: MEDICAL_CRITIQUE_SCHEMA,
+      heartbeat,
+      agentName: "Critic-Medical"
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -161,7 +163,7 @@ const EDITORIAL_CRITIQUE_SCHEMA = {
   required: ["scores", "overall_score", "approved", "revision_required"]
 };
 
-export async function editorialReviewerAgent(draft: ArticleDraft): Promise<AgentResult<EditorialCritique>> {
+export async function editorialReviewerAgent(draft: ArticleDraft, heartbeat?: HeartbeatFn): Promise<AgentResult<EditorialCritique>> {
   const prompt = `Review this article for editorial quality.
 
 TITLE: ${draft.title}
@@ -176,7 +178,9 @@ Score each dimension 1-10 and output JSON matching the schema.`;
     const res = await callSmartAIJSON<EditorialCritique>(prompt, {
       systemPrompt: EDITORIAL_REVIEWER_SYSTEM,
       maxTokens: 4000,
-      responseSchema: EDITORIAL_CRITIQUE_SCHEMA
+      responseSchema: EDITORIAL_CRITIQUE_SCHEMA,
+      heartbeat,
+      agentName: "Critic-Editorial"
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -188,7 +192,7 @@ Score each dimension 1-10 and output JSON matching the schema.`;
 // COMBINED CRITIQUE - Run sequentially and merge feedback
 // ============================================================================
 
-export async function runCritique(draft: ArticleDraft): Promise<{
+export async function runCritique(draft: ArticleDraft, heartbeat?: HeartbeatFn): Promise<{
   medical: MedicalCritique | null;
   editorial: EditorialCritique | null;
   approved: boolean;
@@ -198,11 +202,11 @@ export async function runCritique(draft: ArticleDraft): Promise<{
   let totalTokens = 0;
 
   // Run critics sequentially
-  const medicalResult = await medicalReviewerAgent(draft);
+  const medicalResult = await medicalReviewerAgent(draft, heartbeat);
   const medical = medicalResult.success ? medicalResult.data! : null;
   totalTokens += medicalResult.usage?.total_tokens || 0;
 
-  const editorialResult = await editorialReviewerAgent(draft);
+  const editorialResult = await editorialReviewerAgent(draft, heartbeat);
   const editorial = editorialResult.success ? editorialResult.data! : null;
   totalTokens += editorialResult.usage?.total_tokens || 0;
 

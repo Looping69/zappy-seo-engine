@@ -4,7 +4,8 @@ import type {
   MedicalResearch,
   CompetitorResearch,
   SynthesizedResearch,
-  AgentResult
+  AgentResult,
+  HeartbeatFn
 } from "../types.js";
 
 const SYNTHESIZER_SYSTEM = `You are a content strategist who synthesizes multiple research perspectives into a unified content brief.
@@ -29,7 +30,8 @@ export async function synthesizerAgent(
   keyword: string,
   seo: SEOResearch,
   medical: MedicalResearch,
-  competitors: CompetitorResearch
+  competitors: CompetitorResearch,
+  heartbeat?: HeartbeatFn
 ): Promise<AgentResult<SynthesizedResearch>> {
 
   const prompt = `Synthesize this research into a content strategy.
@@ -53,7 +55,9 @@ Output JSON only matching the requested schema.`;
     const res = await callGeminiJSON<SynthesizedResearch>(prompt, {
       systemPrompt: SYNTHESIZER_SYSTEM,
       maxTokens: 10000,
-      responseSchema: SYNTHESIZED_RESEARCH_SCHEMA
+      responseSchema: SYNTHESIZED_RESEARCH_SCHEMA,
+      heartbeat,
+      agentName: "Synthesizer"
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

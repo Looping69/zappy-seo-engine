@@ -305,6 +305,21 @@ const _ = new Subscription(generateTopic, "run-content-generation", {
             // Override logProgress to save to database
             orchestrator.logProgress = logProgress;
 
+            // Override heartbeat to write to database - keeps PubSub alive during long AI operations
+            orchestrator.heartbeat = async (agentName: string, status: string) => {
+                try {
+                    // Write heartbeat to debug logs - creates database activity to prevent timeout
+                    await db.exec`
+                        INSERT INTO debug_logs (keyword_id, level, source, message, metadata)
+                        VALUES (${keywordId}, 'HEARTBEAT', ${agentName}, ${status}, NULL)
+                    `;
+                    console.log(`[HEARTBEAT] ${agentName}: ${status}`);
+                } catch (e) {
+                    // Heartbeat failures should not crash the pipeline
+                    console.log(`[HEARTBEAT-ERROR] Failed to log heartbeat: ${e}`);
+                }
+            };
+
             // Run the full multi-agent pipeline
             const result = await orchestrator.run();
 

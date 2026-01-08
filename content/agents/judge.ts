@@ -1,5 +1,5 @@
 import { callSmartAIJSON } from "../utils/ai.js";
-import type { ArticleDraft, SynthesizedResearch, AgentResult } from "../types.js";
+import type { ArticleDraft, SynthesizedResearch, AgentResult, HeartbeatFn } from "../types.js";
 
 const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
 You can identify what makes content excellent: clarity, accuracy, engagement, SEO strength.
@@ -72,7 +72,8 @@ const SYNTHESIS_ARTICLE_SCHEMA = {
 
 export async function judgeAgent(
   drafts: ArticleDraft[],
-  research: SynthesizedResearch
+  research: SynthesizedResearch,
+  heartbeat?: HeartbeatFn
 ): Promise<AgentResult<{ selectedDraft: ArticleDraft; decision: JudgeDecision }>> {
 
   // Defensive check: ensure we have valid drafts
@@ -108,7 +109,9 @@ Output JSON only matching the requested schema.`;
     const res = await callSmartAIJSON<JudgeDecision>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 4000,
-      responseSchema: JUDGE_DECISION_SCHEMA
+      responseSchema: JUDGE_DECISION_SCHEMA,
+      heartbeat,
+      agentName: "Judge"
     });
 
     let totalTokens = res.usage.total_tokens;
@@ -119,7 +122,7 @@ Output JSON only matching the requested schema.`;
     let selectedDraft = validDrafts[winnerIdx];
 
     if (decision.synthesis_opportunity && decision.elements_to_combine && decision.elements_to_combine.length > 0) {
-      const synthesisResult = await synthesizeDrafts(selectedDraft, validDrafts, decision.elements_to_combine);
+      const synthesisResult = await synthesizeDrafts(selectedDraft, validDrafts, decision.elements_to_combine, heartbeat);
       if (synthesisResult.success && synthesisResult.data) {
         selectedDraft = synthesisResult.data;
         totalTokens += synthesisResult.usage?.total_tokens || 0;
@@ -139,7 +142,8 @@ Output JSON only matching the requested schema.`;
 async function synthesizeDrafts(
   baseDraft: ArticleDraft,
   allDrafts: ArticleDraft[],
-  elementsToInclude: { from_draft: number; element: string }[]
+  elementsToInclude: { from_draft: number; element: string }[],
+  heartbeat?: HeartbeatFn
 ): Promise<AgentResult<ArticleDraft>> {
 
   const elementsDescription = elementsToInclude
@@ -163,7 +167,9 @@ Output JSON only matching the requested schema.`;
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 8192,
-      responseSchema: SYNTHESIS_ARTICLE_SCHEMA
+      responseSchema: SYNTHESIS_ARTICLE_SCHEMA,
+      heartbeat,
+      agentName: "Judge-Synthesis"
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

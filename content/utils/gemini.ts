@@ -33,6 +33,9 @@ export interface GeminiOptions {
     model?: string;
     jsonMode?: boolean;
     responseSchema?: any;
+    // Heartbeat callback to signal progress during long AI operations
+    heartbeat?: (agentName: string, status: string) => Promise<void>;
+    agentName?: string;
 }
 
 export interface GeminiResult {
@@ -55,12 +58,19 @@ export async function callGemini(
         temperature = 0.7,
         model = "gemini-2.5-flash",
         jsonMode = false,
-        responseSchema
+        responseSchema,
+        heartbeat,
+        agentName = "gemini"
     } = options;
 
     debug("callGemini called", { promptLength: prompt.length, maxTokens, temperature, model, hasSystemPrompt: !!systemPrompt, jsonMode, hasSchema: !!responseSchema });
 
     try {
+        // Signal heartbeat before AI call
+        if (heartbeat) {
+            await heartbeat(agentName, "calling AI...").catch(() => { });
+        }
+
         const geminiModel = getGenAI().getGenerativeModel({
             model,
             systemInstruction: systemPrompt
@@ -84,6 +94,11 @@ export async function callGemini(
         const tokens = response.usageMetadata?.totalTokenCount || 0;
         debug("Gemini response received", { responseLength: text.length, tokens });
 
+        // Signal heartbeat after AI call completes
+        if (heartbeat) {
+            await heartbeat(agentName, `AI response received (${tokens} tokens)`).catch(() => { });
+        }
+
         return {
             text,
             usage: {
@@ -95,6 +110,7 @@ export async function callGemini(
         throw error;
     }
 }
+
 
 /**
  * Bulletproof JSON Repair Logic

@@ -11,6 +11,9 @@ interface SmartAIOptions {
     maxTokens?: number;
     temperature?: number;
     responseSchema?: any;
+    // Heartbeat callback to signal progress during long AI operations
+    heartbeat?: (agentName: string, status: string) => Promise<void>;
+    agentName?: string;
 }
 
 // ============================================================================
@@ -30,10 +33,17 @@ export async function callSmartAIJSON<T>(
     options: SmartAIOptions = {}
 ): Promise<{ data: T; usage: { total_tokens: number }; provider: "claude" | "gemini" }> {
 
+    const { heartbeat, agentName, ...restOptions } = options;
+
     // GEMINI-ONLY MODE: Skip Claude entirely
     if (GEMINI_ONLY_MODE) {
         debug("GEMINI-ONLY MODE: Calling Gemini directly...");
-        const res = await callGeminiJSON<T>(prompt, { ...options, responseSchema: options.responseSchema });
+        const res = await callGeminiJSON<T>(prompt, {
+            ...restOptions,
+            responseSchema: options.responseSchema,
+            heartbeat,
+            agentName
+        });
         debug("Gemini call successful");
         return { ...res, provider: "gemini" };
     }
@@ -41,7 +51,7 @@ export async function callSmartAIJSON<T>(
     // Normal mode: Try Claude first, fallback to Gemini
     try {
         debug("Attempting call with Claude...");
-        const res = await callClaudeJSON<T>(prompt, options);
+        const res = await callClaudeJSON<T>(prompt, { ...restOptions, heartbeat, agentName });
         debug("Claude call successful");
         return { ...res, provider: "claude" };
     } catch (error) {
@@ -51,7 +61,12 @@ export async function callSmartAIJSON<T>(
 
         if (isCreditError || isRateLimitError) {
             debug(`Claude failed (${isCreditError ? "credits" : "rate limit"}). Falling back to Gemini...`, { error: errorStr });
-            const res = await callGeminiJSON<T>(prompt, { ...options, responseSchema: options.responseSchema });
+            const res = await callGeminiJSON<T>(prompt, {
+                ...restOptions,
+                responseSchema: options.responseSchema,
+                heartbeat,
+                agentName
+            });
             debug("Gemini fallback successful");
             return { ...res, provider: "gemini" };
         }
@@ -61,3 +76,4 @@ export async function callSmartAIJSON<T>(
         throw error;
     }
 }
+

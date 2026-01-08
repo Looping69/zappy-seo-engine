@@ -158,3 +158,12 @@ export interface AgentResult<T> {
     total_tokens: number;
   };
 }
+
+// Heartbeat function type for keeping PubSub alive during long AI operations
+// Agents call this to stream small progress signals back to the orchestrator
+export type HeartbeatFn = (agentName: string, status: string) => Promise<void>;
+
+// Agent context passed to all agents for heartbeat support
+export interface AgentContext {
+  heartbeat: HeartbeatFn;
+}

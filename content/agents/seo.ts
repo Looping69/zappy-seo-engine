@@ -1,5 +1,5 @@
 import { callSmartAIJSON } from "../utils/ai.js";
-import type { ArticleDraft, FinalArticle, SEOResearch, AgentResult } from "../types.js";
+import type { ArticleDraft, FinalArticle, SEOResearch, AgentResult, HeartbeatFn } from "../types.js";
 
 const SEO_FINALIZER_SYSTEM = `You are an SEO specialist finalizing content for publication.
 You optimize meta tags, add internal linking opportunities, and generate schema markup.
@@ -33,7 +33,8 @@ const SEO_FINAL_SCHEMA = {
 export async function seoFinalizerAgent(
   draft: ArticleDraft,
   seoResearch: SEOResearch,
-  existingContent?: { title: string; slug: string }[]
+  existingContent?: { title: string; slug: string }[],
+  heartbeat?: HeartbeatFn
 ): Promise<AgentResult<FinalArticle>> {
 
   const internalLinksContext = existingContent
@@ -96,7 +97,9 @@ Output JSON only:
     const res = await callSmartAIJSON<FinalArticle>(prompt, {
       systemPrompt: SEO_FINALIZER_SYSTEM,
       maxTokens: 32000,
-      responseSchema: SEO_FINAL_SCHEMA
+      responseSchema: SEO_FINAL_SCHEMA,
+      heartbeat,
+      agentName: "SEO-Finalizer"
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

@@ -4,7 +4,7 @@ import { writeClinical, writeEmpathetic, writePractical, writeInnovative, revisi
 import { judgeAgent } from "./agents/judge.js";
 import { runCritique } from "./agents/critics.js";
 import { seoFinalizerAgent } from "./agents/seo.js";
-import type { Keyword, PipelineState, FinalArticle } from "./types.js";
+import type { Keyword, PipelineState, FinalArticle, HeartbeatFn } from "./types.js";
 
 // ============================================================================
 // ORCHESTRATOR - Coordinates all agents
@@ -17,6 +17,14 @@ export class ContentOrchestrator {
   private verbose: boolean;
   private totalTokens: number = 0;
   private debugLog: DebugLogFn | null = null;
+
+  // Heartbeat callback for streaming progress to prevent PubSub timeouts
+  public heartbeat: HeartbeatFn = async (agent: string, status: string) => {
+    console.log(`[HEARTBEAT] ${agent}: ${status}`);
+    if (this.debugLog) {
+      await this.debugLog("HEARTBEAT", agent, status).catch(() => { });
+    }
+  };
 
   constructor(keyword: Keyword, options: { verbose?: boolean; maxRevisions?: number; debugLog?: DebugLogFn } = {}) {
     this.verbose = options.verbose ?? true;
@@ -90,7 +98,7 @@ export class ContentOrchestrator {
     // Run research agents sequentially
     await this.log("Running SEO research...", "🔍");
     await this.logAgent("SEO", "start");
-    const seoResult = await seoResearchAgent(keyword);
+    const seoResult = await seoResearchAgent(keyword, this.heartbeat);
 
     if (!seoResult.success || !seoResult.data) {
       this.state.errors.push(`SEO research failed: ${seoResult.error}`);
@@ -103,7 +111,7 @@ export class ContentOrchestrator {
 
     await this.log("Running Medical research...", "⚕️");
     await this.logAgent("Medical", "start");
-    const medicalResult = await medicalResearchAgent(keyword);
+    const medicalResult = await medicalResearchAgent(keyword, this.heartbeat);
 
     if (!medicalResult.success || !medicalResult.data) {
       this.state.errors.push(`Medical research failed: ${medicalResult.error}`);
@@ -116,7 +124,7 @@ export class ContentOrchestrator {
 
     await this.log("Running Competitor research...", "📊");
     await this.logAgent("Competitor", "start");
-    const competitorResult = await competitorResearchAgent(keyword);
+    const competitorResult = await competitorResearchAgent(keyword, this.heartbeat);
 
     if (!competitorResult.success || !competitorResult.data) {
       this.state.errors.push(`Competitor research failed: ${competitorResult.error}`);
@@ -151,7 +159,8 @@ export class ContentOrchestrator {
       this.state.keyword.keyword,
       this.state.seoResearch!,
       this.state.medicalResearch!,
-      this.state.competitorResearch!
+      this.state.competitorResearch!,
+      this.heartbeat
     );
 
     if (!result.success || !result.data) {
@@ -187,7 +196,7 @@ export class ContentOrchestrator {
     // Generate drafts sequentially
     await this.log("Generating Clinical draft...", "✍️");
     await this.logAgent("Writer-Clinical", "start");
-    const clinicalResult = await writeClinical(keyword, research);
+    const clinicalResult = await writeClinical(keyword, research, this.heartbeat);
     if (clinicalResult.success && clinicalResult.data) {
       drafts.push(clinicalResult.data);
       this.totalTokens += clinicalResult.usage?.total_tokens || 0;
@@ -199,7 +208,7 @@ export class ContentOrchestrator {
 
     await this.log("Generating Empathetic draft...", "✍️");
     await this.logAgent("Writer-Empathetic", "start");
-    const empatheticResult = await writeEmpathetic(keyword, research);
+    const empatheticResult = await writeEmpathetic(keyword, research, this.heartbeat);
     if (empatheticResult.success && empatheticResult.data) {
       drafts.push(empatheticResult.data);
       this.totalTokens += empatheticResult.usage?.total_tokens || 0;
@@ -211,7 +220,7 @@ export class ContentOrchestrator {
 
     await this.log("Generating Practical draft...", "✍️");
     await this.logAgent("Writer-Practical", "start");
-    const practicalResult = await writePractical(keyword, research);
+    const practicalResult = await writePractical(keyword, research, this.heartbeat);
     if (practicalResult.success && practicalResult.data) {
       drafts.push(practicalResult.data);
       this.totalTokens += practicalResult.usage?.total_tokens || 0;
@@ -223,7 +232,7 @@ export class ContentOrchestrator {
 
     await this.log("Generating Innovative draft...", "✍️");
     await this.logAgent("Writer-Innovative", "start");
-    const geminiResult = await writeInnovative(keyword, research);
+    const geminiResult = await writeInnovative(keyword, research, this.heartbeat);
     if (geminiResult.success && geminiResult.data) {
       drafts.push(geminiResult.data);
       this.totalTokens += geminiResult.usage?.total_tokens || 0;
@@ -254,7 +263,7 @@ export class ContentOrchestrator {
     await this.log("Judge evaluating all drafts...", "⚖️");
     await this.logAgent("Judge", "start");
 
-    const result = await judgeAgent(this.state.drafts!, this.state.synthesizedResearch!);
+    const result = await judgeAgent(this.state.drafts!, this.state.synthesizedResearch!, this.heartbeat);
 
     if (!result.success || !result.data) {
       this.state.errors.push(`Judge failed: ${result.error}`);
@@ -293,7 +302,7 @@ export class ContentOrchestrator {
       await this.logAgent("Critic-Editorial", "start");
 
       // Run medical and editorial critics in parallel
-      const critique = await runCritique(this.state.currentDraft!);
+      const critique = await runCritique(this.state.currentDraft!, this.heartbeat);
       this.totalTokens += critique.usage?.total_tokens || 0;
 
       // Store critiques
@@ -331,7 +340,8 @@ export class ContentOrchestrator {
       const revisionResult = await revisionWriter(
         this.state.currentDraft!,
         medicalFeedback,
-        editorialFeedback
+        editorialFeedback,
+        this.heartbeat
       );
       this.totalTokens += revisionResult.usage?.total_tokens || 0;
 
@@ -366,7 +376,9 @@ export class ContentOrchestrator {
 
     const result = await seoFinalizerAgent(
       this.state.currentDraft!,
-      this.state.seoResearch!
+      this.state.seoResearch!,
+      undefined,
+      this.heartbeat
     );
 
     if (!result.success || !result.data) {

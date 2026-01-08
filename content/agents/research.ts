@@ -1,5 +1,5 @@
 import { callGeminiJSON } from "../utils/gemini.js";
-import type { SEOResearch, MedicalResearch, CompetitorResearch, AgentResult } from "../types.js";
+import type { SEOResearch, MedicalResearch, CompetitorResearch, AgentResult, HeartbeatFn } from "../types.js";
 
 // Debug logging helper
 function debug(agent: string, message: string, data?: unknown) {
@@ -80,7 +80,7 @@ const SEO_SYSTEM = `You are an expert SEO strategist specializing in healthcare 
 You understand search intent, SERP features, and what makes content rank for medical queries.
 Google's E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is critical for health content.`;
 
-export async function seoResearchAgent(keyword: string): Promise<AgentResult<SEOResearch>> {
+export async function seoResearchAgent(keyword: string, heartbeat?: HeartbeatFn): Promise<AgentResult<SEOResearch>> {
   debug("SEO", `Starting SEO research for: "${keyword}"`);
 
   const prompt = `Analyze this keyword for SEO: "${keyword}"
@@ -96,7 +96,9 @@ Output JSON only matching the requested schema.`;
     const res = await callGeminiJSON<SEOResearch>(prompt, {
       systemPrompt: SEO_SYSTEM,
       maxTokens: 4000,
-      responseSchema: SEO_RESEARCH_SCHEMA
+      responseSchema: SEO_RESEARCH_SCHEMA,
+      heartbeat,
+      agentName: "SEO-Research"
     });
     debug("SEO", "SEO research completed successfully", { tokens: res.usage.total_tokens, intent: res.data.search_intent });
     return { success: true, data: res.data, usage: res.usage };
@@ -114,7 +116,7 @@ const MEDICAL_SYSTEM = `You are a medical research specialist with expertise in 
 You prioritize accuracy above all else. You know the difference between established facts and emerging research.
 You understand FDA guidelines, clinical trial data, and how to communicate medical information responsibly.`;
 
-export async function medicalResearchAgent(keyword: string): Promise<AgentResult<MedicalResearch>> {
+export async function medicalResearchAgent(keyword: string, heartbeat?: HeartbeatFn): Promise<AgentResult<MedicalResearch>> {
   debug("MEDICAL", `Starting medical research for: "${keyword}"`);
 
   const prompt = `Research the medical aspects of: "${keyword}"
@@ -130,7 +132,9 @@ Output JSON only matching the requested schema.`;
     const res = await callGeminiJSON<MedicalResearch>(prompt, {
       systemPrompt: MEDICAL_SYSTEM,
       maxTokens: 8192,
-      responseSchema: MEDICAL_RESEARCH_SCHEMA
+      responseSchema: MEDICAL_RESEARCH_SCHEMA,
+      heartbeat,
+      agentName: "Medical-Research"
     });
     debug("MEDICAL", "Medical research completed successfully", { tokens: res.usage.total_tokens, factsCount: res.data.key_facts?.length });
     return { success: true, data: res.data, usage: res.usage };
@@ -148,7 +152,7 @@ const COMPETITOR_SYSTEM = `You are a competitive intelligence analyst specializi
 You understand what makes content successful, identify gaps in existing coverage, and find unique angles.
 You think strategically about differentiation.`;
 
-export async function competitorResearchAgent(keyword: string): Promise<AgentResult<CompetitorResearch>> {
+export async function competitorResearchAgent(keyword: string, heartbeat?: HeartbeatFn): Promise<AgentResult<CompetitorResearch>> {
   debug("COMPETITOR", `Starting competitor research for: "${keyword}"`);
 
   const prompt = `Analyze what competitors likely have for: "${keyword}"
@@ -164,7 +168,9 @@ Output JSON only matching the requested schema.`;
     const res = await callGeminiJSON<CompetitorResearch>(prompt, {
       systemPrompt: COMPETITOR_SYSTEM,
       maxTokens: 6000,
-      responseSchema: COMPETITOR_RESEARCH_SCHEMA
+      responseSchema: COMPETITOR_RESEARCH_SCHEMA,
+      heartbeat,
+      agentName: "Competitor-Research"
     });
     debug("COMPETITOR", "Competitor research completed successfully", { tokens: res.usage.total_tokens, gapsCount: res.data.content_gaps?.length });
     return { success: true, data: res.data, usage: res.usage };
