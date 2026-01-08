@@ -31,6 +31,7 @@ export interface GeminiOptions {
     maxTokens?: number;
     temperature?: number;
     model?: string;
+    jsonMode?: boolean;
 }
 
 export interface GeminiResult {
@@ -51,10 +52,11 @@ export async function callGemini(
         systemPrompt,
         maxTokens = 4000,
         temperature = 0.7,
-        model = "gemini-2.0-flash"
+        model = "gemini-2.0-flash",
+        jsonMode = false
     } = options;
 
-    debug("callGemini called", { promptLength: prompt.length, maxTokens, temperature, model, hasSystemPrompt: !!systemPrompt });
+    debug("callGemini called", { promptLength: prompt.length, maxTokens, temperature, model, hasSystemPrompt: !!systemPrompt, jsonMode });
 
     try {
         const geminiModel = getGenAI().getGenerativeModel({
@@ -68,6 +70,7 @@ export async function callGemini(
             generationConfig: {
                 maxOutputTokens: maxTokens,
                 temperature: temperature,
+                ...(jsonMode && { responseMimeType: "application/json" })
             },
         });
 
@@ -92,7 +95,7 @@ export function parseJSON<T>(text: string): T {
     debug("parseJSON called", { textLength: text.length });
 
     // Extract JSON from markdown code blocks or raw text
-    let jsonStr = text;
+    let jsonStr = text.trim();
 
     // Try to extract from code blocks first
     const codeBlockMatch = text.match(/```(?:json)?[\r\n]+?([\s\S]*?)[\r\n]+?```/);
@@ -122,10 +125,17 @@ export function parseJSON<T>(text: string): T {
         let cleanedJson = jsonStr
             // Remove trailing commas before ] or }
             .replace(/,(\s*[}\]])/g, '$1')
-            // Fix unescaped newlines in strings (replace with space)
-            .replace(/(?<!\\)\\n/g, ' ')
-            // Remove control characters
-            .replace(/[\x00-\x1F\x7F]/g, ' ')
+            // Fix unescaped newlines in strings - this is tricky, we only want to fix real newlines inside " "
+            // For markdown bodies, Gemini often puts real newlines. We should escape them or trust JSON mode.
+            // .replace(/(?<!\\)\\n/g, ' ') // This was actually breaking existing \n
+
+            // Remove control characters except tab and newline
+            .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ')
+
+            // Fix bad escape sequences like \I or \uXXXX that are invalid
+            // This replaces \ with \\ if NOT followed by a valid escape character
+            .replace(/\\(?!(["\\\/bfnrt]|u[0-9a-fA-F]{4}))/g, '\\\\')
+
             // Fix truncated arrays - close any open arrays
             .replace(/\[[^\]]*$/g, (match) => {
                 const lastComma = match.lastIndexOf(',');
@@ -185,13 +195,11 @@ export async function callGeminiJSON<T>(
     const jsonPrompt = `${prompt}
 
 CRITICAL INSTRUCTIONS:
-1. Output ONLY valid JSON - no markdown, no explanations, no extra text
-2. Ensure all arrays are properly closed with ]
-3. Ensure all objects are properly closed with }
-4. Do not use trailing commas
-5. Keep the response concise and within token limits`;
+1. Output ONLY valid JSON
+2. Escape all special characters in strings (especially newlines and backslashes)
+3. Ensure the response is a complete, valid JSON object`;
 
-    const res = await callGemini(jsonPrompt, options);
+    const res = await callGemini(jsonPrompt, { ...options, jsonMode: true });
 
     try {
         const data = parseJSON<T>(res.text);
