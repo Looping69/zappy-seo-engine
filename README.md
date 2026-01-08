@@ -2,56 +2,52 @@
 
 A powerful, multi-agent autonomous system for generating medical-grade SEO content, built on **Encore.dev** with a distributed neural architecture.
 
-## 🧠 Distributed Agent Architecture
+## 🧠 Sequential Agent Architecture
 
-The system operates using a sophisticated multi-stage pipeline where specialized AI agents collaborate to research, draft, and refine content.
+The system operates using a sophisticated multi-stage pipeline where specialized AI agents work **sequentially within each phase**, storing results to shared memory before batch-passing to the next phase.
 
 ```mermaid
-graph TD
-    A[Keyword Queue] --> B[Orchestrator]
-    B --> C[Parallel Research]
-    subgraph "Phase 1: Deep Research"
-        C1[SEO Agent]
-        C2[Medical Agent]
-        C3[Competitor Agent]
-    end
-    C --> C1 & C2 & C3
-    C1 & C2 & C3 --> D[Synthesizer]
-    D --> E[Parallel Drafting]
-    subgraph "Phase 2: Multi-Angle Writing"
-        E1[Clinical Persona]
-        E2[Empathetic Persona]
-        E3[Practical Persona]
-        E4[Innovative Persona/Gemini]
-    end
-    E --> E1 & E2 & E3 & E4
-    E1 & E2 & E3 & E4 --> F[The Judge]
-    F --> G[Neural Critique Loop]
-    subgraph "Phase 3: Quality Control"
-        G1[Medical Critic]
-        G2[Editorial Critic]
-        G3[Revision Writer]
-    end
-    G --> G1 & G2
-    G1 & G2 --> G3
-    G3 --> G1 & G2
-    G1 & G2 -- Approved --> H[SEO Finalizer]
-    H --> I[PostgreSQL Storage]
-    H --> J[Sanity CMS Sync]
+graph LR
+    A[Keyword] --> R1[SEO Research]
+    R1 --> R2[Medical Research]
+    R2 --> R3[Competitor Research]
+    R3 --> RM[Research Memory]
+    RM --> S[Synthesizer]
+    S --> W1[Clinical Writer]
+    W1 --> W2[Empathetic Writer]
+    W2 --> W3[Practical Writer]
+    W3 --> W4[Innovative Writer]
+    W4 --> DM[Drafts Memory]
+    DM --> J[Judge]
+    J --> C1[Medical Critic]
+    C1 --> C2[Editorial Critic]
+    C2 --> RW[Revision Writer]
+    RW --> SEO[SEO Finalizer]
+    SEO --> DB[(PostgreSQL)]
 ```
 
-## ✨ New in v2.0
-- **Encore.dev Backend**: Migrated to a high-performance, type-safe backend as a service.
-- **Article Editing Suite**: Direct manual refinement via a premium UI modal with markdown support.
-- **Token Telemetry**: Real-time tracking of generation costs (input + output tokens) stored per-article.
-- **Neural Circuit Visualization**: Real-time "Swarm" visualizer showing agent thoughts and movements.
-- **Double-Agent Drafting**: Simultaneously generates drafts using Claude 3.5 and Gemini 2.0.
-- **Innovative Persona**: Support for Gemini 2.0 for innovative writing angles.
+### Phase Breakdown
+| Phase | Agents | Execution |
+|-------|--------|-----------|
+| 1. Research | SEO, Medical, Competitor | Sequential |
+| 2. Synthesis | Synthesizer | Single |
+| 3. Drafting | Clinical, Empathetic, Practical, Innovative | Sequential |
+| 4. Judging | Judge | Single |
+| 5. Critique | Medical Critic, Editorial Critic, Revision Writer | Sequential Loop (3x) |
+| 6. Finalization | SEO Finalizer | Single |
+
+## ✨ New in v2.1
+- **Sequential Execution**: Agents run one at a time within phases for stability
+- **Gemini-Only Mode**: Easy toggle to use Gemini 2.5 Flash exclusively
+- **Robust JSON Parsing**: Schema-enforced responses with 32K token limits
+- **Retry Button**: Failed keywords show a red "Retry" button in the dashboard
+- **Markdown Rendering**: Articles display with proper headings, bullets, formatting
+- **Neural Circuit Visualization**: Real-time "Swarm" visualizer showing phase-based agent activation
 
 ## 🛠️ Tech Stack
 - **Backend**: [Encore.dev](https://encore.dev) (TypeScript)
-- **Database**: PostgreSQL (Managed)
-- **AI Models**: Claude 3.5 Sonnet & Gemini 2.0
+- **Database**: PostgreSQL (Managed by Encore)
+- **AI Models**: Gemini 2.5 Flash (primary), Claude 3.7 Sonnet (standby)
 - **Frontend**: Vanilla JS + Tailwind CSS + Marked.js
 - **Deployment**: Encore Cloud (Backend) + Vercel (Frontend)
 
@@ -59,8 +55,8 @@ graph TD
 
 ### 1. Prerequisites
 - [Encore CLI](https://encore.dev/docs/install)
-- [Anthropic API Key](https://console.anthropic.com/)
 - [Gemini API Key](https://aistudio.google.com/)
+- [Anthropic API Key](https://console.anthropic.com/) (optional)
 
 ### 2. Installation
 ```bash
@@ -70,34 +66,41 @@ npm install
 ```
 
 ### 3. Environment Variables
-Add the following to your `.env`:
 ```env
-ANTHROPIC_API_KEY=your_key
 GEMINI_API_KEY=your_key
+ANTHROPIC_API_KEY=your_key  # Optional
 ```
 
 ### 4. Running Locally
 ```bash
 encore run
 ```
-The dashboard will be available at `http://localhost:4000/ui`.
+Dashboard: `http://localhost:4000/ui`
 
-## 📊 Token Usage & Economics
-The factory now audits every generation. Total tokens are aggregated across all 6 phases:
-1. **Research**: ~9k tokens
-2. **Synthesis**: ~6k tokens
-3. **Drafting**: ~30k tokens (parallel drafts)
-4. **Judging**: ~4k tokens
-5. **Critique**: ~10k tokens/loop
-6. **Finalization**: ~8k tokens
+## 📊 Token Usage
+| Phase | Typical Tokens |
+|-------|---------------|
+| Research | ~7k |
+| Synthesis | ~6k |
+| Drafting | ~40-80k |
+| Judging | ~18k |
+| Critique | ~8k/loop |
+| Finalization | ~10k |
 
-Average total cost per medical insight: **60k - 80k tokens**.
+**Average per article: 80k - 150k tokens**
+
+## 🔧 Configuration
+
+### Switching AI Providers
+Edit `content/utils/ai.ts`:
+```typescript
+const GEMINI_ONLY_MODE = true;  // false = Claude primary
+```
 
 ## 🛡️ Medical Quality Standards
-Every article must pass:
-- **Medical Critic**: Zero dangerous claims, mandatory citations, clear clinical disclaimers.
-- **Editorial Critic**: Clarity score >= 8/10, tone check for "Radical Empathy".
-- **The Judge**: Cross-references the original research brief for coverage completeness.
+- **Medical Critic**: Zero dangerous claims, mandatory citations
+- **Editorial Critic**: Clarity score ≥ 8/10, patient-friendly tone
+- **The Judge**: Coverage completeness check
 
 ---
 *Built for Zappy Health — Redefining high-fidelity medical content automation.*
