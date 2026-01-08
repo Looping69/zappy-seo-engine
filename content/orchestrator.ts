@@ -1,4 +1,3 @@
-import { parallel } from "./utils/claude.js";
 import { seoResearchAgent, medicalResearchAgent, competitorResearchAgent } from "./agents/research.js";
 import { synthesizerAgent } from "./agents/synthesizer.js";
 import { writeClinical, writeEmpathetic, writePractical, writeInnovative, revisionWriter } from "./agents/writers.js";
@@ -83,42 +82,50 @@ export class ContentOrchestrator {
   // ============================================================================
 
   private async runResearch(): Promise<boolean> {
-    await this.logPhase("PHASE 1: RESEARCH (Parallel)");
+    await this.logPhase("PHASE 1: RESEARCH (Sequential)");
     this.state.status = "researching";
 
     const keyword = this.state.keyword.keyword;
 
-    // Run all three research agents in parallel
-    await this.log("Launching SEO, Medical, and Competitor research agents...", "🔍");
+    // Run research agents sequentially
+    await this.log("Running SEO research...", "🔍");
     await this.logAgent("SEO", "start");
-    await this.logAgent("Medical", "start");
-    await this.logAgent("Competitor", "start");
+    const seoResult = await seoResearchAgent(keyword);
 
-    const [seoResult, medicalResult, competitorResult] = await Promise.all([
-      seoResearchAgent(keyword),
-      medicalResearchAgent(keyword),
-      competitorResearchAgent(keyword)
-    ]);
-
-    // Check for failures
     if (!seoResult.success || !seoResult.data) {
       this.state.errors.push(`SEO research failed: ${seoResult.error}`);
       await this.logAgent("SEO", "error", seoResult.error);
       await this.log("SEO research failed", "❌", "ERROR", "research");
       return false;
     }
+    await this.logAgent("SEO", "complete", `${seoResult.data.recommended_word_count} words`, { tokens: seoResult.usage?.total_tokens });
+    await this.log(`SEO: ${seoResult.data.search_intent} intent, ${seoResult.data.recommended_word_count} words`, "✓");
+
+    await this.log("Running Medical research...", "⚕️");
+    await this.logAgent("Medical", "start");
+    const medicalResult = await medicalResearchAgent(keyword);
+
     if (!medicalResult.success || !medicalResult.data) {
       this.state.errors.push(`Medical research failed: ${medicalResult.error}`);
       await this.logAgent("Medical", "error", medicalResult.error);
       await this.log("Medical research failed", "❌", "ERROR", "research");
       return false;
     }
+    await this.logAgent("Medical", "complete", `${medicalResult.data.key_facts.length} facts`, { tokens: medicalResult.usage?.total_tokens });
+    await this.log(`Medical: ${medicalResult.data.key_facts.length} key facts identified`, "✓");
+
+    await this.log("Running Competitor research...", "📊");
+    await this.logAgent("Competitor", "start");
+    const competitorResult = await competitorResearchAgent(keyword);
+
     if (!competitorResult.success || !competitorResult.data) {
       this.state.errors.push(`Competitor research failed: ${competitorResult.error}`);
       await this.logAgent("Competitor", "error", competitorResult.error);
       await this.log("Competitor research failed", "❌", "ERROR", "research");
       return false;
     }
+    await this.logAgent("Competitor", "complete", `${competitorResult.data.content_gaps.length} gaps`, { tokens: competitorResult.usage?.total_tokens });
+    await this.log(`Competitors: ${competitorResult.data.content_gaps.length} gaps found`, "✓");
 
     this.state.seoResearch = seoResult.data;
     this.state.medicalResearch = medicalResult.data;
@@ -127,14 +134,6 @@ export class ContentOrchestrator {
     this.totalTokens += (seoResult.usage?.total_tokens || 0) +
       (medicalResult.usage?.total_tokens || 0) +
       (competitorResult.usage?.total_tokens || 0);
-
-    await this.logAgent("SEO", "complete", `${seoResult.data.recommended_word_count} words`, { tokens: seoResult.usage?.total_tokens });
-    await this.logAgent("Medical", "complete", `${medicalResult.data.key_facts.length} facts`, { tokens: medicalResult.usage?.total_tokens });
-    await this.logAgent("Competitor", "complete", `${competitorResult.data.content_gaps.length} gaps`, { tokens: competitorResult.usage?.total_tokens });
-
-    await this.log(`SEO: ${seoResult.data.search_intent} intent, ${seoResult.data.recommended_word_count} words`, "✓");
-    await this.log(`Medical: ${medicalResult.data.key_facts.length} key facts identified`, "✓");
-    await this.log(`Competitors: ${competitorResult.data.content_gaps.length} gaps found`, "✓");
 
     return true;
   }
@@ -173,65 +172,66 @@ export class ContentOrchestrator {
   }
 
   // ============================================================================
-  // PHASE 3: Parallel Draft Generation
+  // PHASE 3: Sequential Draft Generation
   // ============================================================================
 
   private async runDrafting(): Promise<boolean> {
-    await this.logPhase("PHASE 3: DRAFT GENERATION (Parallel)");
+    await this.logPhase("PHASE 3: DRAFT GENERATION (Sequential)");
     this.state.status = "drafting";
 
     const keyword = this.state.keyword.keyword;
     const research = this.state.synthesizedResearch!;
 
-    // Generate 4 drafts with different angles in parallel
-    await this.log("Generating 4 draft angles: Clinical, Empathetic, Practical, and Gemini Innovative...", "✍️");
-    await this.logAgent("Writer-Clinical", "start");
-    await this.logAgent("Writer-Empathetic", "start");
-    await this.logAgent("Writer-Practical", "start");
-    await this.logAgent("Writer-Gemini", "start");
-
-    const [clinicalResult, empatheticResult, practicalResult, geminiResult] = await parallel([
-      () => writeClinical(keyword, research),
-      () => writeEmpathetic(keyword, research),
-      () => writePractical(keyword, research),
-      () => writeInnovative(keyword, research)
-    ]);
-
     const drafts = [];
 
+    // Generate drafts sequentially
+    await this.log("Generating Clinical draft...", "✍️");
+    await this.logAgent("Writer-Clinical", "start");
+    const clinicalResult = await writeClinical(keyword, research);
     if (clinicalResult.success && clinicalResult.data) {
       drafts.push(clinicalResult.data);
+      this.totalTokens += clinicalResult.usage?.total_tokens || 0;
       await this.logAgent("Writer-Clinical", "complete", clinicalResult.data.title, { tokens: clinicalResult.usage?.total_tokens });
       await this.log(`Clinical draft: "${clinicalResult.data.title}"`, "✓");
     } else {
       await this.logAgent("Writer-Clinical", "error", clinicalResult.error);
     }
+
+    await this.log("Generating Empathetic draft...", "✍️");
+    await this.logAgent("Writer-Empathetic", "start");
+    const empatheticResult = await writeEmpathetic(keyword, research);
     if (empatheticResult.success && empatheticResult.data) {
       drafts.push(empatheticResult.data);
+      this.totalTokens += empatheticResult.usage?.total_tokens || 0;
       await this.logAgent("Writer-Empathetic", "complete", empatheticResult.data.title, { tokens: empatheticResult.usage?.total_tokens });
       await this.log(`Empathetic draft: "${empatheticResult.data.title}"`, "✓");
     } else {
       await this.logAgent("Writer-Empathetic", "error", empatheticResult.error);
     }
+
+    await this.log("Generating Practical draft...", "✍️");
+    await this.logAgent("Writer-Practical", "start");
+    const practicalResult = await writePractical(keyword, research);
     if (practicalResult.success && practicalResult.data) {
       drafts.push(practicalResult.data);
+      this.totalTokens += practicalResult.usage?.total_tokens || 0;
       await this.logAgent("Writer-Practical", "complete", practicalResult.data.title, { tokens: practicalResult.usage?.total_tokens });
       await this.log(`Practical draft: "${practicalResult.data.title}"`, "✓");
     } else {
       await this.logAgent("Writer-Practical", "error", practicalResult.error);
     }
+
+    await this.log("Generating Innovative draft...", "✍️");
+    await this.logAgent("Writer-Innovative", "start");
+    const geminiResult = await writeInnovative(keyword, research);
     if (geminiResult.success && geminiResult.data) {
       drafts.push(geminiResult.data);
-      await this.logAgent("Writer-Gemini", "complete", geminiResult.data.title, { tokens: geminiResult.usage?.total_tokens });
-      await this.log(`Gemini Innovative draft: "${geminiResult.data.title}"`, "✓");
+      this.totalTokens += geminiResult.usage?.total_tokens || 0;
+      await this.logAgent("Writer-Innovative", "complete", geminiResult.data.title, { tokens: geminiResult.usage?.total_tokens });
+      await this.log(`Innovative draft: "${geminiResult.data.title}"`, "✓");
     } else {
-      await this.logAgent("Writer-Gemini", "error", geminiResult.error);
+      await this.logAgent("Writer-Innovative", "error", geminiResult.error);
     }
-
-    this.totalTokens += (clinicalResult.usage?.total_tokens || 0) +
-      (empatheticResult.usage?.total_tokens || 0) +
-      (practicalResult.usage?.total_tokens || 0) +
-      (geminiResult.usage?.total_tokens || 0);
 
     if (drafts.length < 2) {
       this.state.errors.push("Not enough drafts generated");

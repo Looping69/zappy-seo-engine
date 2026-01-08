@@ -95,7 +95,7 @@ Output JSON only:
   try {
     const res = await callSmartAIJSON<FinalArticle>(prompt, {
       systemPrompt: SEO_FINALIZER_SYSTEM,
-      maxTokens: 8192,
+      maxTokens: 32000,
       responseSchema: SEO_FINAL_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };

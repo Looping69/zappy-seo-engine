@@ -506,6 +506,20 @@
             }
         }
 
+        async function retryKeyword(id) {
+            try {
+                // Reset keyword status to queued first
+                await fetch(`/keywords/${id}/reset`, { method: 'POST' });
+                refreshKeywords();
+                // Then start generation
+                startSingle(id);
+            } catch (e) {
+                console.error('Failed to retry keyword', e);
+                // If reset endpoint doesn't exist, just try to start directly
+                startSingle(id);
+            }
+        }
+
         function switchTab(tab) {
             ['keywords', 'content', 'history', 'logs', 'debug'].forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
@@ -550,7 +564,7 @@
                 data.keywords.forEach(kw => {
                     const row = document.createElement('div');
                     row.className = "factory-card p-5 flex flex-row items-center justify-between gap-4";
-                    const statusClass = kw.status === 'published' ? 'text-emerald-500' : kw.status === 'generating' ? 'text-orange-600 font-black' : 'text-slate-400';
+                    const statusClass = kw.status === 'published' ? 'text-emerald-500' : kw.status === 'generating' ? 'text-orange-600 font-black' : kw.status === 'error' || kw.status === 'failed' ? 'text-red-500 font-black' : 'text-slate-400';
                     const pulseClass = kw.status === 'generating' ? 'pulse' : '';
 
                     row.innerHTML = `
@@ -567,7 +581,9 @@
                             `<button onclick="startSingle(${kw.id})" class="bg-orange-500 text-white text-[9px] font-black px-3 py-1.5 rounded-md hover:bg-orange-600 transition-all uppercase tracking-widest leading-none">Deploy</button>`
                             : kw.status === 'generating' ?
                                 `<button onclick="trackKeyword(${kw.id})" class="bg-slate-100 text-slate-600 text-[9px] font-black px-3 py-1.5 rounded-md transition-all uppercase tracking-widest leading-none">Watch</button>`
-                                : ''}
+                                : kw.status === 'error' || kw.status === 'failed' ?
+                                    `<button onclick="retryKeyword(${kw.id})" class="bg-red-500 text-white text-[9px] font-black px-3 py-1.5 rounded-md hover:bg-red-600 transition-all uppercase tracking-widest leading-none">Retry</button>`
+                                    : ''}
                             <button onclick="deleteKeyword(${kw.id}, '${kw.keyword.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Delete keyword">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
@@ -676,11 +692,19 @@
 
         function renderArticleView() {
             const body = document.getElementById('modal-body');
+
+            // Normalize the body content - replace escaped newlines with actual newlines
+            let normalizedBody = currentArticle.body || '';
+            // Handle double-escaped newlines (\\n)
+            normalizedBody = normalizedBody.replace(/\\\\n/g, '\n');
+            // Handle single-escaped newlines (\n as literal string)
+            normalizedBody = normalizedBody.replace(/\\n/g, '\n');
+
             body.innerHTML = `
                 <h1 class="mb-4 text-4xl font-black text-slate-900 leading-tight">${currentArticle.title}</h1>
                 <div class="mb-12 italic text-slate-500 text-lg border-l-4 border-orange-500 pl-6 py-2 bg-orange-50/30 rounded-r-xl">${currentArticle.meta_description}</div>
                 <div class="prose prose-slate max-w-none">
-                    ${marked.parse(currentArticle.body)}
+                    ${marked.parse(normalizedBody)}
                 </div>
             `;
         }

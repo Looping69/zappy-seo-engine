@@ -188,23 +188,45 @@
         let selectedAgent = null;
         let isJobActive = false;
 
-        // NEON COLORS
+        // AGENT COLORS BY PHASE
         const colors = {
-            cyan: 0x00f2ff,
-            purple: 0xbc13fe,
-            orange: 0xff4d00,
-            yellow: 0xffd300,
-            red: 0xff003c,
-            green: 0x24ff00
+            // Phase 1: Research (Blues/Cyans)
+            seo: 0x00d4ff,
+            medical: 0x00f2ff,
+            competitor: 0x00ffcc,
+            // Phase 2: Synthesis (Purple)
+            synthesizer: 0xbc13fe,
+            // Phase 3: Writing (Oranges)
+            clinical: 0xff6b00,
+            empathetic: 0xff9500,
+            practical: 0xffb700,
+            innovative: 0xffd300,
+            // Phase 4-7: Evaluation (Reds/Greens)
+            judge: 0xff003c,
+            critique: 0xff4466,
+            seo_final: 0x24ff00
         };
 
+        // Agents grouped by phase - they work independently within each phase
         const agentData = [
-            { id: 1, name: 'Researcher Alpha', role: 'Research', color: colors.cyan, mission: 'Executing deep-level semantic mining across 4,000 global medical databases.', op: 'Analyzing clinical trial metadata', facts: ['Cross-ref 12.4k papers', 'Domain authority: 9.8', 'Latent cluster: 04'] },
-            { id: 2, name: 'Synthesizer Beta', role: 'Synthesis', color: colors.purple, mission: 'Building high-density information bridges between disparate clinical findings.', op: 'Mapping knowledge graph nodes', facts: ['Linking study S-99 to T-04', 'Entity weight: 0.88', 'Structure: Hierarchical'] },
-            { id: 3, name: 'Drafting Core', role: 'Drafting', color: colors.orange, mission: 'Converting high-density data clusters into empathetic, readable expert narratives.', op: 'Generative Narrative Pulse', facts: ['Readability: Grade 10', 'Tone: Clinical/Expert', 'Words/sec: 145'] },
-            { id: 4, name: 'Editorial Judge', role: 'Judging', color: colors.yellow, mission: 'Enforcing strict E-A-T protocols and scientific fact-density standards.', op: 'Truth-Scoping Clinical Claims', facts: ['Claim density: High', 'Source verification: 100%', 'Bias filter: Active'] },
-            { id: 5, name: 'Critique Engine', role: 'Critique', color: colors.red, mission: 'Adversarially testing all drafted conclusions for logical gaps.', op: 'Logical Stress Testing', facts: ['Negative constraints: 44', 'Loop check: 0 errors', 'Style clash: Minor'] },
-            { id: 6, name: 'SEO Architect', role: 'SEO', color: colors.green, mission: 'Optimizing the final neural structure for multi-vector semantic search intent.', op: 'Keyword Cluster Deployment', facts: ['Intent match: Informative', 'LSI density: Optimized', 'Breadcrumb: Verified'] }
+            // PHASE 1: RESEARCH (Independent - each only sees keyword)
+            { id: 1, name: 'SEO Research', role: 'Research', phase: 1, color: colors.seo, mission: 'Analyzing search intent, SERP features, and keyword variations.', op: 'Intent Classification', facts: ['Intent: Informational', 'Word count: 2000', 'SERP: Featured Snippets'] },
+            { id: 2, name: 'Medical Research', role: 'Research', phase: 1, color: colors.medical, mission: 'Extracting medical facts, mechanisms, and safety information.', op: 'Medical Fact Mining', facts: ['12 key facts found', 'FDA sources verified', 'Contraindications mapped'] },
+            { id: 3, name: 'Competitor Research', role: 'Research', phase: 1, color: colors.competitor, mission: 'Identifying content gaps and unique angles.', op: 'Gap Analysis', facts: ['5 content gaps', '3 unique angles', 'Competitor weak points'] },
+
+            // PHASE 2: SYNTHESIS (Receives all research at once)
+            { id: 4, name: 'Synthesizer', role: 'Synthesis', phase: 2, color: colors.synthesizer, mission: 'Combining all research into a unified content strategy.', op: 'Strategy Fusion', facts: ['Primary angle set', 'Structure defined', 'Word count: 2000'] },
+
+            // PHASE 3: WRITING (Independent - each sees only the strategy)
+            { id: 5, name: 'Clinical Writer', role: 'Writing', phase: 3, color: colors.clinical, mission: 'Drafting with clinical authority and medical precision.', op: 'Clinical Draft', facts: ['Tone: Authoritative', 'Sources cited: 8', 'Word count: 2100'] },
+            { id: 6, name: 'Empathetic Writer', role: 'Writing', phase: 3, color: colors.empathetic, mission: 'Drafting with warmth and patient understanding.', op: 'Empathetic Draft', facts: ['Tone: Supportive', 'Readability: Grade 8', 'Engagement: High'] },
+            { id: 7, name: 'Practical Writer', role: 'Writing', phase: 3, color: colors.practical, mission: 'Drafting with actionable, step-by-step guidance.', op: 'Practical Draft', facts: ['Steps: 7', 'Actionable items: 12', 'Clarity: Optimal'] },
+            { id: 8, name: 'Innovative Writer', role: 'Writing', phase: 3, color: colors.innovative, mission: 'Drafting with modern, forward-thinking perspective.', op: 'Innovative Draft', facts: ['Fresh angles: 3', 'Novel structure', 'Engagement: Peak'] },
+
+            // PHASE 4+: EVALUATION (Receives all drafts at once)
+            { id: 9, name: 'Judge', role: 'Judging', phase: 4, color: colors.judge, mission: 'Evaluating all drafts and selecting the best one.', op: 'Draft Comparison', facts: ['Scoring 4 drafts', 'Synthesis check', 'Winner selected'] },
+            { id: 10, name: 'Medical Critic', role: 'Critique', phase: 5, color: colors.critique, mission: 'Verifying medical accuracy and safety compliance.', op: 'Medical Review', facts: ['Claims verified: 15', 'Accuracy: 98%', 'Safety: Approved'] },
+            { id: 11, name: 'SEO Finalizer', role: 'SEO', phase: 6, color: colors.seo_final, mission: 'Optimizing meta tags and adding schema markup.', op: 'Final Polish', facts: ['Meta optimized', 'Schema added', 'Links inserted'] }
         ];
 
         const agents = [];
@@ -282,97 +304,201 @@
 
         const boundary = 25;
 
-        function getShapeTarget(agentIndex, progress) {
-            const size = 15;
-            const count = agents.length;
+        // Phase positions - agents orbit around their phase's "memory node"
+        const phasePositions = {
+            1: new THREE.Vector3(-20, 0, 0),   // Research phase (left)
+            2: new THREE.Vector3(-10, 0, 0),   // Synthesis phase
+            3: new THREE.Vector3(0, 0, 0),     // Writing phase (center)
+            4: new THREE.Vector3(10, 0, 0),    // Judge phase
+            5: new THREE.Vector3(15, 0, 0),    // Critique phase
+            6: new THREE.Vector3(20, 0, 0)     // SEO Final phase (right)
+        };
 
-            if (currentShapeObjective === 'CUBE') {
-                // Return one of the corner/edge positions
-                const x = ((agentIndex % 2) * 2 - 1) * size;
-                const y = ((Math.floor(agentIndex / 2) % 2) * 2 - 1) * size;
-                const z = ((Math.floor(agentIndex / 4) % 2) * 2 - 1) * size;
-                return new THREE.Vector3(x, y, z);
-            } else if (currentShapeObjective === 'SPHERE') {
-                const phi = Math.acos(-1 + (2 * agentIndex) / count);
-                const theta = Math.sqrt(count * Math.PI) * phi;
-                return new THREE.Vector3(
-                    size * Math.cos(theta) * Math.sin(phi),
-                    size * Math.sin(theta) * Math.sin(phi),
-                    size * Math.cos(phi)
-                );
-            } else { // PYRAMID
-                const pts = [
-                    [1, -1, 1], [-1, -1, 1], [-1, -1, -1], [1, -1, -1], [0, 1, 0]
-                ];
-                const p = pts[agentIndex % pts.length];
-                return new THREE.Vector3(p[0] * size, p[1] * size, p[2] * size);
-            }
+        // Memory nodes visualization
+        const memoryNodes = [];
+        [1, 2, 3, 4, 5, 6].forEach(phase => {
+            const geometry = new THREE.OctahedronGeometry(0.8, 0);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x6366f1,
+                emissive: 0x6366f1,
+                emissiveIntensity: 0.3,
+                transparent: true,
+                opacity: 0.6
+            });
+            const node = new THREE.Mesh(geometry, material);
+            node.position.copy(phasePositions[phase]);
+            node.userData.phase = phase;
+            scene.add(node);
+            memoryNodes.push(node);
+        });
+
+        // Track which agent is currently active (sequential execution)
+        let currentActiveAgentIndex = 0;
+        let activePhase = 1;
+
+        function getCurrentPhaseFromProgress(progress) {
+            // Map progress to phases
+            if (progress < 15) return 1;      // Research
+            if (progress < 25) return 2;      // Synthesis
+            if (progress < 50) return 3;      // Writing
+            if (progress < 65) return 4;      // Judge
+            if (progress < 85) return 5;      // Critique
+            return 6;                          // SEO Final
+        }
+
+        function getActiveAgentInPhase(phase, progress) {
+            const phaseAgents = agents.filter(a => a.data.phase === phase);
+            if (phaseAgents.length === 0) return null;
+
+            // Determine which agent in this phase is active based on sub-progress
+            let subProgress;
+            if (phase === 1) subProgress = progress / 15;
+            else if (phase === 2) subProgress = (progress - 15) / 10;
+            else if (phase === 3) subProgress = (progress - 25) / 25;
+            else if (phase === 4) subProgress = (progress - 50) / 15;
+            else if (phase === 5) subProgress = (progress - 65) / 20;
+            else subProgress = (progress - 85) / 15;
+
+            const agentIdx = Math.min(Math.floor(subProgress * phaseAgents.length), phaseAgents.length - 1);
+            return phaseAgents[agentIdx];
         }
 
         function updateAgentTargets(time) {
-            if (!isJobActive) return;
+            if (!isJobActive) {
+                // When idle, agents gently orbit their phase position
+                agents.forEach((agent, i) => {
+                    const phase = agent.data.phase;
+                    const basePos = phasePositions[phase];
+                    const angle = time * 0.0002 + i * 0.5;
+                    agent.target.set(
+                        basePos.x + Math.cos(angle) * 3,
+                        basePos.y + Math.sin(angle * 0.7) * 2,
+                        basePos.z + Math.sin(angle) * 3
+                    );
+                    agent.isActive = false;
+                });
+                return;
+            }
+
+            activePhase = getCurrentPhaseFromProgress(globalJobProgress);
+            const activeAgent = getActiveAgentInPhase(activePhase, globalJobProgress);
 
             agents.forEach((agent, i) => {
+                const phase = agent.data.phase;
+                const basePos = phasePositions[phase];
                 const t = time * 0.001;
 
-                if (!agent.moodTimer || time > agent.moodTimer) {
-                    agent.speed = 0.05 + Math.random() * 0.1;
-                    const shapePos = getShapeTarget(i, globalJobProgress);
-
-                    // The more progress, the higher the weight towards the shape target
-                    const weight = Math.pow(globalJobProgress / 100, 2);
-
-                    // Choose random cardinal axis but biased towards target if progress is high
-                    const axis = Math.floor(Math.random() * 3);
-                    let dir = Math.random() > 0.5 ? 1 : -1;
-
-                    // Bias logic
-                    if (Math.random() < weight) {
-                        const diff = [
-                            shapePos.x - agent.target.x,
-                            shapePos.y - agent.target.y,
-                            shapePos.z - agent.target.z
-                        ];
-                        dir = Math.sign(diff[axis]) || (Math.random() > 0.5 ? 1 : -1);
+                if (activeAgent && agent === activeAgent) {
+                    // ACTIVE AGENT: Energetic movement, working on task
+                    agent.isActive = true;
+                    if (!agent.moodTimer || time > agent.moodTimer) {
+                        // Sporadic movement showing "work"
+                        const workRadius = 6;
+                        agent.target.set(
+                            basePos.x + (Math.random() - 0.5) * workRadius * 2,
+                            basePos.y + (Math.random() - 0.5) * workRadius,
+                            basePos.z + (Math.random() - 0.5) * workRadius * 2
+                        );
+                        agent.moodTimer = time + 200 + Math.random() * 400;
                     }
+                } else if (phase < activePhase) {
+                    // COMPLETED AGENTS: Rest near their phase's memory node
+                    agent.isActive = false;
+                    const restAngle = i * Math.PI / 3 + t * 0.1;
+                    agent.target.set(
+                        basePos.x + Math.cos(restAngle) * 2,
+                        basePos.y + 0.5,
+                        basePos.z + Math.sin(restAngle) * 2
+                    );
+                } else if (phase === activePhase) {
+                    // WAITING IN PHASE: Gentle orbit waiting for turn
+                    agent.isActive = false;
+                    const waitAngle = i * Math.PI / 2 + t * 0.3;
+                    agent.target.set(
+                        basePos.x + Math.cos(waitAngle) * 5,
+                        basePos.y + Math.sin(t + i) * 1.5,
+                        basePos.z + Math.sin(waitAngle) * 5
+                    );
+                } else {
+                    // FUTURE PHASES: Dormant, distant orbit
+                    agent.isActive = false;
+                    const dormantAngle = t * 0.05 + i;
+                    agent.target.set(
+                        basePos.x + Math.cos(dormantAngle) * 8,
+                        basePos.y - 5,
+                        basePos.z + Math.sin(dormantAngle) * 8
+                    );
+                }
+            });
 
-                    const dist = 3 + Math.random() * 6;
-                    agent.sporadicDir = new THREE.Vector3(0, 0, 0);
-                    if (axis === 0) agent.sporadicDir.x = dir * dist;
-                    else if (axis === 1) agent.sporadicDir.y = dir * dist;
-                    else agent.sporadicDir.z = dir * dist;
-
-                    agent.moodTimer = time + 300 + Math.random() * 800;
-                    agent.target.add(agent.sporadicDir);
-
-                    agent.target.x = Math.max(-boundary, Math.min(boundary, agent.target.x));
-                    agent.target.y = Math.max(-boundary, Math.min(boundary, agent.target.y));
-                    agent.target.z = Math.max(-boundary, Math.min(boundary, agent.target.z));
+            // Animate memory nodes - pulse when receiving data
+            memoryNodes.forEach((node, idx) => {
+                const phase = idx + 1;
+                if (phase === activePhase) {
+                    node.material.emissiveIntensity = 0.8 + Math.sin(time * 0.01) * 0.4;
+                    node.rotation.y += 0.02;
+                    node.scale.setScalar(1.2 + Math.sin(time * 0.005) * 0.2);
+                } else if (phase < activePhase) {
+                    node.material.emissiveIntensity = 0.5;
+                    node.rotation.y += 0.005;
+                    node.scale.setScalar(1.0);
+                } else {
+                    node.material.emissiveIntensity = 0.1;
+                    node.scale.setScalar(0.8);
                 }
             });
         }
 
-        // Interaction Lines (Synapses)
-        const synapseMax = 15;
+        // Interaction Lines (Synapses) - now shows data flow to memory nodes
         const synapseGeo = new THREE.BufferGeometry();
-        const synapseMat = new THREE.LineBasicMaterial({ color: 0xCBD5E1, transparent: true, opacity: 0.2 });
+        const synapseMat = new THREE.LineBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.4 });
         const synapses = new THREE.LineSegments(synapseGeo, synapseMat);
         scene.add(synapses);
+
+        // Phase flow lines (permanent connections between memory nodes)
+        const flowGeo = new THREE.BufferGeometry();
+        const flowPositions = [];
+        for (let i = 1; i < 6; i++) {
+            const from = phasePositions[i];
+            const to = phasePositions[i + 1];
+            flowPositions.push(from.x, from.y, from.z, to.x, to.y, to.z);
+        }
+        flowGeo.setAttribute('position', new THREE.Float32BufferAttribute(flowPositions, 3));
+        const flowMat = new THREE.LineDashedMaterial({
+            color: 0x94a3b8,
+            transparent: true,
+            opacity: 0.3,
+            dashSize: 0.5,
+            gapSize: 0.3
+        });
+        const flowLines = new THREE.LineSegments(flowGeo, flowMat);
+        flowLines.computeLineDistances();
+        scene.add(flowLines);
 
         function updateSynapses() {
             const positions = [];
             if (isJobActive) {
-                for (let i = 0; i < agents.length; i++) {
-                    for (let j = i + 1; j < agents.length; j++) {
-                        const dist = agents[i].mesh.position.distanceTo(agents[j].mesh.position);
-                        if (dist < 12) {
-                            positions.push(
-                                agents[i].mesh.position.x, agents[i].mesh.position.y, agents[i].mesh.position.z,
-                                agents[j].mesh.position.x, agents[j].mesh.position.y, agents[j].mesh.position.z
-                            );
-                        }
+                // Draw lines from active agent to its phase's memory node
+                agents.forEach((agent, i) => {
+                    if (agent.isActive) {
+                        const memNode = memoryNodes[agent.data.phase - 1];
+                        positions.push(
+                            agent.mesh.position.x, agent.mesh.position.y, agent.mesh.position.z,
+                            memNode.position.x, memNode.position.y, memNode.position.z
+                        );
                     }
-                }
+                });
+
+                // Connect completed agents to their memory nodes (fainter)
+                agents.forEach(agent => {
+                    if (agent.data.phase < activePhase) {
+                        const memNode = memoryNodes[agent.data.phase - 1];
+                        positions.push(
+                            agent.mesh.position.x, agent.mesh.position.y, agent.mesh.position.z,
+                            memNode.position.x, memNode.position.y, memNode.position.z
+                        );
+                    }
+                });
             }
             synapseGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         }
@@ -396,7 +522,7 @@
                 agent.trail.geometry.setDrawRange(0, count);
                 posAttr.needsUpdate = true;
 
-                // Informative Bubble logic
+                // Informative Bubble logic - ONLY for active agent
                 const vector = agent.mesh.position.clone();
                 vector.project(camera);
 
@@ -406,10 +532,11 @@
                 agent.bubble.style.left = `${screenX}px`;
                 agent.bubble.style.top = `${screenY}px`;
 
-                if (isJobActive && time > agent.thoughtTimer) {
+                // Only show thought bubbles for the currently active agent
+                if (isJobActive && agent.isActive && time > agent.thoughtTimer) {
                     const fact = agent.data.facts[agent.factIndex];
                     agent.bubble.innerHTML = `
-                        <div class="text-[9px] font-black uppercase mb-1 opacity-50">${agent.data.role} ACTIVE</div>
+                        <div class="text-[9px] font-black uppercase mb-1 opacity-50">${agent.data.role} WORKING</div>
                         <div class="text-slate-900">${fact}</div>
                     `;
                     agent.bubble.style.opacity = '1';
@@ -418,11 +545,12 @@
                     setTimeout(() => {
                         agent.bubble.style.opacity = '0';
                         agent.bubble.style.transform = 'translate(-50%, -120%) scale(0.95)';
-                    }, 3500);
+                    }, 3000);
 
                     agent.factIndex = (agent.factIndex + 1) % agent.data.facts.length;
-                    agent.thoughtTimer = time + 6000 + Math.random() * 4000;
-                } else if (!isJobActive) {
+                    agent.thoughtTimer = time + 4000 + Math.random() * 2000;
+                } else if (!agent.isActive) {
+                    // Hide bubbles for non-active agents
                     agent.bubble.style.opacity = '0';
                 }
             });

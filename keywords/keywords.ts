@@ -78,6 +78,16 @@ export const updateStatus = api(
     }
 );
 
+// Reset keyword status to queued (for retrying failed keywords)
+export const resetKeyword = api(
+    { expose: true, method: "POST", path: "/keywords/:id/reset" },
+    async ({ id }: IdParams): Promise<void> => {
+        await db.exec`
+            UPDATE keywords SET status = 'queued' WHERE id = ${id}
+        `;
+    }
+);
+
 // Get keyword by ID
 export const getById = api(
     { expose: true, method: "GET", path: "/keywords/:id" },

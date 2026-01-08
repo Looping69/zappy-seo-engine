@@ -17,15 +17,29 @@ CRITICAL FLAGS:
 - Claims that could delay proper medical care
 - Missing "consult your provider" where needed`;
 
-const CRITIQUE_SCHEMA = {
+const MEDICAL_CRITIQUE_SCHEMA = {
   type: "OBJECT",
   properties: {
-    score: { type: "NUMBER" },
-    feedback: { type: "ARRAY", items: { type: "STRING" } },
-    critical_errors: { type: "ARRAY", items: { type: "STRING" } },
-    passed: { type: "BOOLEAN" }
+    claims_found: { type: "INTEGER" },
+    claims_verified: { type: "INTEGER" },
+    flagged_claims: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          claim: { type: "STRING" },
+          issue: { type: "STRING" },
+          severity: { type: "STRING" }
+        },
+        required: ["claim", "issue", "severity"]
+      }
+    },
+    missing_disclaimers: { type: "ARRAY", items: { type: "STRING" } },
+    overall_accuracy: { type: "NUMBER" },
+    approved: { type: "BOOLEAN" },
+    revision_required: { type: "ARRAY", items: { type: "STRING" } }
   },
-  required: ["score", "feedback", "critical_errors", "passed"]
+  required: ["claims_found", "claims_verified", "overall_accuracy", "approved", "revision_required"]
 };
 
 export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentResult<MedicalCritique>> {
@@ -33,21 +47,24 @@ export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentRe
 
 Title: ${draft.title}
 Body:
-${draft.body}
+${draft.body.substring(0, 8000)}
 
-Focus on:
-1. Is any medical claim factually incorrect?
-2. Are GLP-1 mechanisms explained accurately?
-3. Are side effects and contraindications clear and prioritized?
-4. Are sources cited correctly for strong claims?
-
-Output JSON only matching the requested schema.`;
+Analyze the article and output JSON:
+{
+  "claims_found": <number of medical claims>,
+  "claims_verified": <number of accurate claims>,
+  "flagged_claims": [{"claim": "...", "issue": "...", "severity": "low|medium|high"}],
+  "missing_disclaimers": ["..."],
+  "overall_accuracy": <1-10 score>,
+  "approved": <true if safe and accurate>,
+  "revision_required": ["list of fixes needed"]
+}`;
 
   try {
     const res = await callSmartAIJSON<MedicalCritique>(prompt, {
       systemPrompt: MEDICAL_REVIEWER_SYSTEM,
-      maxTokens: 3000,
-      responseSchema: CRITIQUE_SCHEMA
+      maxTokens: 4000,
+      responseSchema: MEDICAL_CRITIQUE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -66,49 +83,100 @@ You understand that medical content must be accurate, but it also must be readab
 
 VOICE TARGET: A knowledgeable physician explaining to a patient - warm, clear, authoritative but not intimidating.`;
 
+const EDITORIAL_CRITIQUE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    scores: {
+      type: "OBJECT",
+      properties: {
+        clarity: {
+          type: "OBJECT",
+          properties: {
+            dimension: { type: "STRING" },
+            score: { type: "NUMBER" },
+            feedback: { type: "STRING" },
+            must_fix: { type: "BOOLEAN" }
+          },
+          required: ["dimension", "score", "feedback", "must_fix"]
+        },
+        voice: {
+          type: "OBJECT",
+          properties: {
+            dimension: { type: "STRING" },
+            score: { type: "NUMBER" },
+            feedback: { type: "STRING" },
+            must_fix: { type: "BOOLEAN" }
+          },
+          required: ["dimension", "score", "feedback", "must_fix"]
+        },
+        structure: {
+          type: "OBJECT",
+          properties: {
+            dimension: { type: "STRING" },
+            score: { type: "NUMBER" },
+            feedback: { type: "STRING" },
+            must_fix: { type: "BOOLEAN" }
+          },
+          required: ["dimension", "score", "feedback", "must_fix"]
+        },
+        engagement: {
+          type: "OBJECT",
+          properties: {
+            dimension: { type: "STRING" },
+            score: { type: "NUMBER" },
+            feedback: { type: "STRING" },
+            must_fix: { type: "BOOLEAN" }
+          },
+          required: ["dimension", "score", "feedback", "must_fix"]
+        },
+        seo: {
+          type: "OBJECT",
+          properties: {
+            dimension: { type: "STRING" },
+            score: { type: "NUMBER" },
+            feedback: { type: "STRING" },
+            must_fix: { type: "BOOLEAN" }
+          },
+          required: ["dimension", "score", "feedback", "must_fix"]
+        }
+      },
+      required: ["clarity", "voice", "structure", "engagement", "seo"]
+    },
+    overall_score: { type: "NUMBER" },
+    approved: { type: "BOOLEAN" },
+    revision_required: { type: "ARRAY", items: { type: "STRING" } },
+    specific_edits: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          location: { type: "STRING" },
+          current: { type: "STRING" },
+          suggested: { type: "STRING" }
+        },
+        required: ["location", "current", "suggested"]
+      }
+    }
+  },
+  required: ["scores", "overall_score", "approved", "revision_required"]
+};
+
 export async function editorialReviewerAgent(draft: ArticleDraft): Promise<AgentResult<EditorialCritique>> {
   const prompt = `Review this article for editorial quality.
 
 TITLE: ${draft.title}
 META: ${draft.meta_description}
 
-ARTICLE:
-${draft.body}
+ARTICLE (first 8000 chars):
+${draft.body.substring(0, 8000)}
 
-Score each dimension 1-10:
-1. **Clarity**: Is it easy to understand? Jargon explained?
-2. **Voice**: Does it sound like a helpful doctor, not a corporation?
-3. **Structure**: Logical flow? Good use of headings? Scannable?
-4. **Engagement**: Does it hook the reader? Keep them reading?
-5. **SEO**: Natural keyword usage? Good meta? Proper headings?
-
-For each score below 8, provide specific fixes.
-
-Output JSON only:
-{
-  "scores": {
-    "clarity": {"dimension": "clarity", "score": 8, "feedback": "Clear overall, but X paragraph is dense", "must_fix": false},
-    "voice": {"dimension": "voice", "score": 7, "feedback": "Sounds too corporate in intro", "must_fix": true},
-    "structure": {"dimension": "structure", "score": 9, "feedback": "Excellent use of subheadings", "must_fix": false},
-    "engagement": {"dimension": "engagement", "score": 7, "feedback": "Opening is weak, doesn't hook", "must_fix": true},
-    "seo": {"dimension": "seo", "score": 8, "feedback": "Good keyword placement", "must_fix": false}
-  },
-  "overall_score": 7.8,
-  "approved": false,
-  "revision_required": ["Rewrite opening to be more engaging", "Fix corporate tone in paragraph 2"],
-  "specific_edits": [
-    {
-      "location": "Opening paragraph",
-      "current": "Semaglutide is a medication that...",
-      "suggested": "If you're considering semaglutide, you probably have questions..."
-    }
-  ]
-}`;
+Score each dimension 1-10 and output JSON matching the schema.`;
 
   try {
     const res = await callSmartAIJSON<EditorialCritique>(prompt, {
       systemPrompt: EDITORIAL_REVIEWER_SYSTEM,
-      maxTokens: 3000
+      maxTokens: 4000,
+      responseSchema: EDITORIAL_CRITIQUE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -117,7 +185,7 @@ Output JSON only:
 }
 
 // ============================================================================
-// COMBINED CRITIQUE - Run both and merge feedback
+// COMBINED CRITIQUE - Run sequentially and merge feedback
 // ============================================================================
 
 export async function runCritique(draft: ArticleDraft): Promise<{
@@ -127,25 +195,25 @@ export async function runCritique(draft: ArticleDraft): Promise<{
   revisionNeeded: string[];
   usage: { total_tokens: number };
 }> {
-  // Run both critics in parallel
-  const [medicalResult, editorialResult] = await Promise.all([
-    medicalReviewerAgent(draft),
-    editorialReviewerAgent(draft)
-  ]);
+  let totalTokens = 0;
 
+  // Run critics sequentially
+  const medicalResult = await medicalReviewerAgent(draft);
   const medical = medicalResult.success ? medicalResult.data! : null;
-  const editorial = editorialResult.success ? editorialResult.data! : null;
+  totalTokens += medicalResult.usage?.total_tokens || 0;
 
-  const totalTokens = (medicalResult.usage?.total_tokens || 0) + (editorialResult.usage?.total_tokens || 0);
+  const editorialResult = await editorialReviewerAgent(draft);
+  const editorial = editorialResult.success ? editorialResult.data! : null;
+  totalTokens += editorialResult.usage?.total_tokens || 0;
 
   // Combine revision requirements
   const revisionNeeded: string[] = [];
 
-  if (medical) {
+  if (medical?.revision_required) {
     revisionNeeded.push(...medical.revision_required);
   }
 
-  if (editorial) {
+  if (editorial?.revision_required) {
     revisionNeeded.push(...editorial.revision_required);
   }
 
