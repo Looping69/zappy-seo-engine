@@ -1,3 +1,27 @@
+import { callSmartAIJSON } from "../utils/ai.js";
+import type { ArticleDraft, SynthesizedResearch, AgentResult } from "../types.js";
+
+const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
+You can identify what makes content excellent: clarity, accuracy, engagement, SEO strength.
+You're decisive - you pick winners and explain why.
+You can also synthesize: take the best elements from multiple drafts to create something better.`;
+
+interface JudgeDecision {
+  winner: number;
+  reasoning: string;
+  scores: {
+    draft_index: number;
+    overall: number;
+    strengths: string[];
+    weaknesses: string[];
+  }[];
+  synthesis_opportunity: boolean;
+  elements_to_combine?: {
+    from_draft: number;
+    element: string;
+  }[];
+}
+
 const JUDGE_DECISION_SCHEMA = {
   type: "OBJECT",
   properties: {

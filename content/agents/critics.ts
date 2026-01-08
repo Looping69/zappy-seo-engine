@@ -28,7 +28,7 @@ const CRITIQUE_SCHEMA = {
   required: ["score", "feedback", "critical_errors", "passed"]
 };
 
-export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentResult<CriticFeedback>> {
+export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentResult<MedicalCritique>> {
   const prompt = `Review this article for medical accuracy.
 
 Title: ${draft.title}
@@ -44,8 +44,8 @@ Focus on:
 Output JSON only matching the requested schema.`;
 
   try {
-    const res = await callSmartAIJSON<CriticFeedback>(prompt, {
-      systemPrompt: MEDICAL_CRITIC_SYSTEM,
+    const res = await callSmartAIJSON<MedicalCritique>(prompt, {
+      systemPrompt: MEDICAL_REVIEWER_SYSTEM,
       maxTokens: 3000,
       responseSchema: CRITIQUE_SCHEMA
     });

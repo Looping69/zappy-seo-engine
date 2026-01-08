@@ -5,6 +5,31 @@ const SEO_FINALIZER_SYSTEM = `You are an SEO specialist finalizing content for p
 You optimize meta tags, add internal linking opportunities, and generate schema markup.
 You make surgical improvements without changing the medical content.`;
 
+const SEO_FINAL_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    title: { type: "STRING" },
+    meta_description: { type: "STRING" },
+    slug: { type: "STRING" },
+    body: { type: "STRING" },
+    sources: { type: "ARRAY", items: { type: "STRING" } },
+    internal_links: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          anchor: { type: "STRING" },
+          slug: { type: "STRING" }
+        },
+        required: ["anchor", "slug"]
+      }
+    },
+    quality_score: { type: "NUMBER" },
+    iterations: { type: "INTEGER" }
+  },
+  required: ["title", "meta_description", "slug", "body"]
+};
+
 export async function seoFinalizerAgent(
   draft: ArticleDraft,
   seoResearch: SEOResearch,
