@@ -261,10 +261,17 @@ export const getStats = api(
 // ============ Background Subscriber with Full AI Pipeline ============
 
 const _ = new Subscription(generateTopic, "run-content-generation", {
-    // Give 10 minutes for AI operations to complete before timeout
-    ackDeadline: "10m",
+    // Give 30 minutes for AI operations to complete before timeout on cloud
+    ackDeadline: "30m",
     handler: async (params: GenerateParams) => {
         const { keywordId, keyword, direction } = params;
+
+        // Idempotency check: Skip if content already exists
+        const existing = await db.queryRow`SELECT id FROM content_records WHERE keyword_id = ${keywordId}`;
+        if (existing) {
+            await keywords.updateStatus({ id: keywordId, status: "published" });
+            return;
+        }
 
         // Helper to save progress logs
         const logProgress = async (percent: number, step: string) => {
