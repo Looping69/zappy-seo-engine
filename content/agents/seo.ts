@@ -74,7 +74,7 @@ Output JSON only:
       systemPrompt: SEO_FINALIZER_SYSTEM,
       maxTokens: 32000,
       responseSchema: SEO_FINAL_SCHEMA,
-      model: "models/gemini-1.5-flash",
+      model: "gemini-2.0-flash-lite",
       heartbeat,
       agentName: "SEO-Finalizer"
     });

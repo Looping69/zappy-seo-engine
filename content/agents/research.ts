@@ -32,7 +32,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: SEO_SYSTEM,
       maxTokens: 4000,
       responseSchema: SEO_RESEARCH_SCHEMA,
-      model: "models/gemini-1.5-flash",
+      model: "gemini-2.0-flash-lite",
       heartbeat,
       agentName: "SEO-Research"
     });
@@ -69,7 +69,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: MEDICAL_SYSTEM,
       maxTokens: 8192,
       responseSchema: MEDICAL_RESEARCH_SCHEMA,
-      model: "models/gemini-1.5-flash",
+      model: "gemini-2.0-flash-lite",
       heartbeat,
       agentName: "Medical-Research"
     });
@@ -106,7 +106,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: COMPETITOR_SYSTEM,
       maxTokens: 6000,
       responseSchema: COMPETITOR_RESEARCH_SCHEMA,
-      model: "models/gemini-1.5-flash",
+      model: "gemini-2.0-flash-lite",
       heartbeat,
       agentName: "Competitor-Research"
     });
