@@ -262,7 +262,7 @@ export const getStats = api(
 
 const _ = new Subscription(generateTopic, "run-content-generation", {
     // Give 30 minutes for AI operations to complete before timeout on cloud
-    ackDeadline: "30m",
+    ackDeadline: "3000m",
     handler: async (params: GenerateParams) => {
         const { keywordId, keyword, direction } = params;
 
