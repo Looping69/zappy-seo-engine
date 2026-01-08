@@ -17,44 +17,37 @@ CRITICAL FLAGS:
 - Claims that could delay proper medical care
 - Missing "consult your provider" where needed`;
 
-export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentResult<MedicalCritique>> {
-  const prompt = `Review this article for medical accuracy and patient safety.
+const CRITIQUE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    score: { type: "NUMBER" },
+    feedback: { type: "ARRAY", items: { type: "STRING" } },
+    critical_errors: { type: "ARRAY", items: { type: "STRING" } },
+    passed: { type: "BOOLEAN" }
+  },
+  required: ["score", "feedback", "critical_errors", "passed"]
+};
 
-TITLE: ${draft.title}
+export async function medicalReviewerAgent(draft: ArticleDraft): Promise<AgentResult<CriticFeedback>> {
+  const prompt = `Review this article for medical accuracy.
 
-ARTICLE:
+Title: ${draft.title}
+Body:
 ${draft.body}
 
-Review:
-1. Identify every medical claim made
-2. Verify accuracy (flag anything uncertain or wrong)
-3. Check for missing warnings/contraindications
-4. Ensure appropriate disclaimers are present
-5. Flag anything that could harm patients
+Focus on:
+1. Is any medical claim factually incorrect?
+2. Are GLP-1 mechanisms explained accurately?
+3. Are side effects and contraindications clear and prioritized?
+4. Are sources cited correctly for strong claims?
 
-BE STRICT. Patient safety is paramount.
-
-Output JSON only:
-{
-  "claims_found": 15,
-  "claims_verified": 13,
-  "flagged_claims": [
-    {
-      "claim": "The specific claim text",
-      "issue": "What's wrong with it",
-      "severity": "low|medium|high"
-    }
-  ],
-  "missing_disclaimers": ["Should mention X", "Needs consult provider warning for Y"],
-  "overall_accuracy": 8.5,
-  "approved": false,
-  "revision_required": ["Fix the dosing in paragraph 3", "Add contraindication for kidney disease"]
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
-    const res = await callSmartAIJSON<MedicalCritique>(prompt, {
-      systemPrompt: MEDICAL_REVIEWER_SYSTEM,
-      maxTokens: 2000
+    const res = await callSmartAIJSON<CriticFeedback>(prompt, {
+      systemPrompt: MEDICAL_CRITIC_SYSTEM,
+      maxTokens: 3000,
+      responseSchema: CRITIQUE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

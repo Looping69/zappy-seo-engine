@@ -57,6 +57,22 @@ Target: Tech-savvy readers, early adopters, and those looking for more than "sta
 Tone: Forward-thinking, energetic, and optimistic health expert.`
 };
 
+const ARTICLE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    angle: { type: "STRING" },
+    title: { type: "STRING" },
+    meta_description: { type: "STRING" },
+    slug: { type: "STRING" },
+    body: { type: "STRING" },
+    sources_cited: {
+      type: "ARRAY",
+      items: { type: "STRING" }
+    }
+  },
+  required: ["angle", "title", "meta_description", "slug", "body"]
+};
+
 async function writeArticle(
   angle: keyof typeof WRITER_ANGLES,
   keyword: string,
@@ -77,20 +93,13 @@ REQUIREMENTS:
 - Cite sources where making medical claims
 - End with subtle CTA to Zappy (helpful, not salesy)
 
-Output JSON only:
-{
-  "angle": "${angle}",
-  "title": "SEO title",
-  "meta_description": "Compelling meta description",
-  "slug": "url-friendly-slug",
-  "body": "Full article in markdown with ## headings",
-  "sources_cited": ["Source 1", "Source 2"]
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: WRITER_ANGLES[angle],
-      maxTokens: 8192
+      maxTokens: 8192,
+      responseSchema: ARTICLE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -143,20 +152,13 @@ ${editorialFeedback.map(f => `- ${f}`).join("\n")}
 
 Revise the article. Keep what's working, fix what's not.
 
-Output JSON only:
-{
-  "angle": "${currentDraft.angle}",
-  "title": "Updated title if needed",
-  "meta_description": "Updated meta if needed",
-  "slug": "${currentDraft.slug}",
-  "body": "Revised full article in markdown",
-  "sources_cited": ["Updated sources"]
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
-      maxTokens: 8192
+      maxTokens: 8192,
+      responseSchema: ARTICLE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

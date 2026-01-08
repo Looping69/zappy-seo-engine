@@ -10,6 +10,7 @@ interface SmartAIOptions {
     systemPrompt?: string;
     maxTokens?: number;
     temperature?: number;
+    responseSchema?: any;
 }
 
 /**
@@ -22,6 +23,8 @@ export async function callSmartAIJSON<T>(
 ): Promise<{ data: T; usage: { total_tokens: number }; provider: "claude" | "gemini" }> {
     try {
         debug("Attempting call with Claude...");
+        // Claude doesn't support native schema enforcement like Gemini yet, 
+        // but the instruction is still in the prompt.
         const res = await callClaudeJSON<T>(prompt, options);
         debug("Claude call successful");
         return { ...res, provider: "claude" };
@@ -32,7 +35,7 @@ export async function callSmartAIJSON<T>(
 
         if (isCreditError || isRateLimitError) {
             debug(`Claude failed (${isCreditError ? "credits" : "rate limit"}). Falling back to Gemini...`, { error: errorStr });
-            const res = await callGeminiJSON<T>(prompt, options);
+            const res = await callGeminiJSON<T>(prompt, { ...options, responseSchema: options.responseSchema });
             debug("Gemini fallback successful");
             return { ...res, provider: "gemini" };
         }

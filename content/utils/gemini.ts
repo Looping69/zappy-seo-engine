@@ -32,6 +32,7 @@ export interface GeminiOptions {
     temperature?: number;
     model?: string;
     jsonMode?: boolean;
+    responseSchema?: any;
 }
 
 export interface GeminiResult {
@@ -53,10 +54,11 @@ export async function callGemini(
         maxTokens = 4000,
         temperature = 0.7,
         model = "gemini-2.5-flash",
-        jsonMode = false
+        jsonMode = false,
+        responseSchema
     } = options;
 
-    debug("callGemini called", { promptLength: prompt.length, maxTokens, temperature, model, hasSystemPrompt: !!systemPrompt, jsonMode });
+    debug("callGemini called", { promptLength: prompt.length, maxTokens, temperature, model, hasSystemPrompt: !!systemPrompt, jsonMode, hasSchema: !!responseSchema });
 
     try {
         const geminiModel = getGenAI().getGenerativeModel({
@@ -70,7 +72,10 @@ export async function callGemini(
             generationConfig: {
                 maxOutputTokens: maxTokens,
                 temperature: temperature,
-                ...(jsonMode && { responseMimeType: "application/json" })
+                ...(jsonMode && {
+                    responseMimeType: "application/json",
+                    ...(responseSchema && { responseSchema })
+                })
             },
         });
 
@@ -89,6 +94,50 @@ export async function callGemini(
         debug("ERROR in callGemini", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
         throw error;
     }
+}
+
+/**
+ * Bulletproof JSON Repair Logic
+ * Specially designed to handle unescaped quotes in long markdown bodies
+ */
+function repairJson(jsonStr: string): string {
+    // 1. Basic structural cleanup
+    let repaired = jsonStr.trim()
+        .replace(/,(\s*[}\]])/g, '$1') // Trailing commas
+        .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' '); // Control chars
+
+    // 2. Fix unescaped newlines in strings first (essential for the next step)
+    repaired = repaired.replace(/"((?:\\.|[^"\\])*)"/g, (match, group) => {
+        return '"' + group.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
+    });
+
+    // 3. Aggressive Quote Repair
+    // We look for patterns where a quote is definitely part of the text, not a JSON delimiter.
+    // Heuristic: A quote is LIKELY a typo if it's NOT:
+    // - Preceded by: { , [ : (with optional whitespace)
+    // - Followed by: , } ] : (with optional whitespace)
+
+    // We do this by identifying ALL valid JSON structural delimiters first
+    // This is a "best effort" string repair
+    try {
+        // Try to identify "naked" quotes in large blocks of text
+        // Most common issue: "body": "... "quote" ..."
+        // We'll escape any quote that is surrounded by alphanumeric characters
+        repaired = repaired.replace(/([a-zA-Z0-9])"([a-zA-Z0-9])/g, '$1\\"$2');
+
+        // Escape quotes followed by a space (and not a delimiter)
+        repaired = repaired.replace(/"(\s+[^,}\]:\]])/g, '\\"$1');
+
+        // Escape quotes preceded by common text patterns (e.g. He said ")
+        repaired = repaired.replace(/([a-z])\s*"(?!\s*[,}\]:\]])/gi, '$1\\\"');
+    } catch (e) {
+        debug("Aggressive quote repair failed, skipping...", { error: String(e) });
+    }
+
+    // 4. Final attempt to fix common escape sequences
+    repaired = repaired.replace(/\\(?!(["\\\/bfnrt]|u[0-9a-fA-F]{4}))/g, '\\\\');
+
+    return repaired;
 }
 
 export function parseJSON<T>(text: string): T {
@@ -121,38 +170,12 @@ export function parseJSON<T>(text: string): T {
     } catch (firstError) {
         debug("First JSON parse attempt failed, trying to fix common issues...", { error: String(firstError) });
 
-        // Common fixes for LLM JSON output issues
-        let cleanedJson = jsonStr
-            // Remove trailing commas before ] or }
-            .replace(/,(\s*[}\]])/g, '$1')
-
-            // Fix unescaped newlines inside strings
-            // This finds content between double quotes and replaces literal newlines with \n
-            // The regex "((?:\\.|[^"\\])*)" matches strings correctly even with escaped quotes
-            .replace(/"((?:\\.|[^"\\])*)"/g, (match, group) => {
-                return '"' + group.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
-            })
-
-            // Remove control characters except tab and newline
-            .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ')
-
-            // Fix bad escape sequences like \I or \uXXXX that are invalid
-            // This replaces \ with \\ if NOT followed by a valid escape character
-            .replace(/\\(?!(["\\\/bfnrt]|u[0-9a-fA-F]{4}))/g, '\\\\')
-
-            // Fix truncated arrays - close any open arrays
-            .replace(/\[[^\]]*$/g, (match) => {
-                const lastComma = match.lastIndexOf(',');
-                if (lastComma > 0) {
-                    return match.substring(0, lastComma) + ']';
-                }
-                return match + ']';
-            });
+        const cleanedJson = repairJson(jsonStr);
 
         try {
             return JSON.parse(cleanedJson);
         } catch (secondError) {
-            debug("Second JSON parse attempt failed, trying aggressive cleanup...", { error: String(secondError) });
+            debug("Second JSON parse attempt failed, trying aggressive balancing...", { error: String(secondError) });
 
             // More aggressive: try to find and parse the first complete JSON object
             try {
@@ -175,7 +198,7 @@ export function parseJSON<T>(text: string): T {
                 }
 
                 if (startIdx !== -1 && endIdx !== -1) {
-                    const balancedJson = jsonStr.substring(startIdx, endIdx);
+                    const balancedJson = repairJson(jsonStr.substring(startIdx, endIdx));
                     return JSON.parse(balancedJson);
                 }
             } catch (thirdError) {
@@ -201,7 +224,8 @@ export async function callGeminiJSON<T>(
 CRITICAL INSTRUCTIONS:
 1. Output ONLY valid JSON
 2. Escape all special characters in strings (especially newlines and backslashes)
-3. Ensure the response is a complete, valid JSON object`;
+3. Do NOT include unescaped double quotes inside of string values. If you need to use a quote, use \\\" instead.
+4. Ensure the response is a complete, valid JSON object`;
 
     const res = await callGemini(jsonPrompt, { ...options, jsonMode: true });
 

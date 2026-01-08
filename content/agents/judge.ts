@@ -1,26 +1,50 @@
-import { callSmartAIJSON } from "../utils/ai.js";
-import type { ArticleDraft, SynthesizedResearch, AgentResult } from "../types.js";
+const JUDGE_DECISION_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    winner: { type: "INTEGER" },
+    reasoning: { type: "STRING" },
+    scores: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          draft_index: { type: "INTEGER" },
+          overall: { type: "NUMBER" },
+          strengths: { type: "ARRAY", items: { type: "STRING" } },
+          weaknesses: { type: "ARRAY", items: { type: "STRING" } }
+        },
+        required: ["draft_index", "overall", "strengths", "weaknesses"]
+      }
+    },
+    synthesis_opportunity: { type: "BOOLEAN" },
+    elements_to_combine: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          from_draft: { type: "INTEGER" },
+          element: { type: "STRING" }
+        },
+        required: ["from_draft", "element"]
+      }
+    }
+  },
+  required: ["winner", "reasoning", "scores", "synthesis_opportunity"]
+};
 
-const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
-You can identify what makes content excellent: clarity, accuracy, engagement, SEO strength.
-You're decisive - you pick winners and explain why.
-You can also synthesize: take the best elements from multiple drafts to create something better.`;
-
-interface JudgeDecision {
-  winner: number; // 0, 1, or 2 (index of winning draft)
-  reasoning: string;
-  scores: {
-    draft_index: number;
-    overall: number;
-    strengths: string[];
-    weaknesses: string[];
-  }[];
-  synthesis_opportunity: boolean;
-  elements_to_combine?: {
-    from_draft: number;
-    element: string;
-  }[];
-}
+// Re-use ARTICLE_SCHEMA logic via a shared type or just redefine it here for the synthesis step
+const SYNTHESIS_ARTICLE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    angle: { type: "STRING" },
+    title: { type: "STRING" },
+    meta_description: { type: "STRING" },
+    slug: { type: "STRING" },
+    body: { type: "STRING" },
+    sources_cited: { type: "ARRAY", items: { type: "STRING" } }
+  },
+  required: ["angle", "title", "meta_description", "slug", "body"]
+};
 
 export async function judgeAgent(
   drafts: ArticleDraft[],
@@ -46,35 +70,15 @@ DRAFT 3 (${drafts[2].angle}):
 Title: ${drafts[2].title}
 ${drafts[2].body.substring(0, 2000)}...
 
-Evaluate each on:
-1. Does it answer the key questions?
-2. Medical accuracy signals (cites sources, appropriate disclaimers)
-3. Readability and engagement
-4. Voice (sounds like a helpful doctor, not a corporation)
-5. SEO optimization
+Pick a winner. Note if combining elements would be better.
 
-Pick a winner. Also note if combining elements from multiple drafts would be better.
-
-Output JSON only:
-{
-  "winner": 0,
-  "reasoning": "Why this draft wins",
-  "scores": [
-    {"draft_index": 0, "overall": 8.5, "strengths": [".."], "weaknesses": [".."]},
-    {"draft_index": 1, "overall": 7.2, "strengths": [".."], "weaknesses": [".."]},
-    {"draft_index": 2, "overall": 7.8, "strengths": [".."], "weaknesses": [".."]}
-  ],
-  "synthesis_opportunity": true,
-  "elements_to_combine": [
-    {"from_draft": 1, "element": "The opening hook about patient struggle"},
-    {"from_draft": 2, "element": "The dosing table format"}
-  ]
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     const res = await callSmartAIJSON<JudgeDecision>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
-      maxTokens: 4000
+      maxTokens: 4000,
+      responseSchema: JUDGE_DECISION_SCHEMA
     });
 
     let totalTokens = res.usage.total_tokens;
@@ -112,32 +116,22 @@ async function synthesizeDrafts(
 
   const prompt = `Improve this article by incorporating the best elements from other drafts.
 
-BASE ARTICLE (keep this structure):
+BASE ARTICLE:
 ${baseDraft.body}
 
 ELEMENTS TO INCORPORATE:
 ${elementsDescription}
 
-OTHER DRAFTS FOR REFERENCE:
+OTHER DRAFTS:
 ${allDrafts.map((d, i) => `Draft ${i + 1}:\n${d.body.substring(0, 1500)}...`).join("\n\n")}
 
-Create an improved version that incorporates the specified elements naturally.
-Keep the base structure but enhance with the best parts of other drafts.
-
-Output JSON only:
-{
-  "angle": "synthesized",
-  "title": "${baseDraft.title}",
-  "meta_description": "${baseDraft.meta_description}",
-  "slug": "${baseDraft.slug}",
-  "body": "Improved full article",
-  "sources_cited": []
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
-      maxTokens: 8192
+      maxTokens: 8192,
+      responseSchema: SYNTHESIS_ARTICLE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

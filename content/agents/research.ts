@@ -7,6 +7,72 @@ function debug(agent: string, message: string, data?: unknown) {
 }
 
 // ============================================================================
+// SCHEMAS FOR CONSTRAINED OUTPUT
+// ============================================================================
+
+const SEO_RESEARCH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    search_intent: { type: "STRING" },
+    serp_features: { type: "ARRAY", items: { type: "STRING" } },
+    top_ranking_factors: { type: "ARRAY", items: { type: "STRING" } },
+    keyword_variations: { type: "ARRAY", items: { type: "STRING" } },
+    recommended_word_count: { type: "INTEGER" },
+    content_format: { type: "STRING" }
+  },
+  required: ["search_intent", "serp_features", "top_ranking_factors", "keyword_variations", "recommended_word_count", "content_format"]
+};
+
+const MEDICAL_RESEARCH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    key_facts: { type: "ARRAY", items: { type: "STRING" } },
+    mechanisms: { type: "ARRAY", items: { type: "STRING" } },
+    contraindications: { type: "ARRAY", items: { type: "STRING" } },
+    side_effects: { type: "ARRAY", items: { type: "STRING" } },
+    dosing_info: { type: "ARRAY", items: { type: "STRING" } },
+    sources: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          type: { type: "STRING" },
+          year: { type: "INTEGER" }
+        },
+        required: ["title", "type"]
+      }
+    },
+    accuracy_requirements: { type: "ARRAY", items: { type: "STRING" } }
+  },
+  required: ["key_facts", "mechanisms", "contraindications", "side_effects", "sources", "accuracy_requirements"]
+};
+
+const COMPETITOR_RESEARCH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    top_articles: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          angle: { type: "STRING" },
+          strengths: { type: "ARRAY", items: { type: "STRING" } },
+          weaknesses: { type: "ARRAY", items: { type: "STRING" } },
+          word_count: { type: "INTEGER" }
+        },
+        required: ["title", "angle", "strengths", "weaknesses"]
+      }
+    },
+    content_gaps: { type: "ARRAY", items: { type: "STRING" } },
+    unique_angles: { type: "ARRAY", items: { type: "STRING" } },
+    questions_unanswered: { type: "ARRAY", items: { type: "STRING" } }
+  },
+  required: ["top_articles", "content_gaps", "unique_angles", "questions_unanswered"]
+};
+
+// ============================================================================
 // SEO RESEARCH AGENT
 // ============================================================================
 
@@ -21,29 +87,16 @@ export async function seoResearchAgent(keyword: string): Promise<AgentResult<SEO
 
 Context: This is for Zappy Health, a telehealth company specializing in GLP-1 weight loss medications, men's health, women's health, and hair loss.
 
-Analyze:
-1. What is the TRUE search intent? (What does the person really want to know/do?)
-2. What SERP features likely appear? (Featured snippets, PAA, knowledge panels, etc.)
-3. What factors will determine ranking for this query?
-4. What related keywords should be included naturally?
-5. What word count typically ranks?
-6. What content format works best?
+Analyze search intent, SERP features, ranking factors, keyword variations, recommended word count, and content format.
 
-Output JSON only:
-{
-  "search_intent": "informational|transactional|comparison|navigational",
-  "serp_features": ["featured snippet", "people also ask", ...],
-  "top_ranking_factors": ["comprehensive coverage of X", "medical credentials", ...],
-  "keyword_variations": ["related keyword 1", "related keyword 2", ...],
-  "recommended_word_count": 1800,
-  "content_format": "comprehensive guide|comparison|listicle|FAQ|how-to"
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     debug("SEO", "Calling AI for SEO analysis...");
     const res = await callGeminiJSON<SEOResearch>(prompt, {
       systemPrompt: SEO_SYSTEM,
-      maxTokens: 4000
+      maxTokens: 4000,
+      responseSchema: SEO_RESEARCH_SCHEMA
     });
     debug("SEO", "SEO research completed successfully", { tokens: res.usage.total_tokens, intent: res.data.search_intent });
     return { success: true, data: res.data, usage: res.usage };
@@ -68,31 +121,16 @@ export async function medicalResearchAgent(keyword: string): Promise<AgentResult
 
 Context: Zappy Health prescribes GLP-1 medications (semaglutide, tirzepatide), testosterone, hair loss treatments, and other telehealth services.
 
-Provide:
-1. Key medical facts that MUST be accurate
-2. Mechanism of action (if medication-related)
-3. Important contraindications or warnings
-4. Common and serious side effects
-5. Dosing information (if relevant)
-6. Credible sources (FDA, clinical trials, medical guidelines)
-7. Specific accuracy requirements (what claims need citations)
+Provide key facts, mechanisms, contraindications, side effects, dosing info, sources, and accuracy requirements.
 
-Output JSON only:
-{
-  "key_facts": ["fact 1", "fact 2", ...],
-  "mechanisms": ["how it works explanation", ...],
-  "contraindications": ["who should not use", ...],
-  "side_effects": ["common: X, Y", "serious: Z", ...],
-  "dosing_info": ["typical doses", "titration schedules", ...],
-  "sources": [{"title": "FDA label", "type": "regulatory", "year": 2023}, ...],
-  "accuracy_requirements": ["claim X requires citation", ...]
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     debug("MEDICAL", "Calling AI for medical research...");
     const res = await callGeminiJSON<MedicalResearch>(prompt, {
       systemPrompt: MEDICAL_SYSTEM,
-      maxTokens: 8192
+      maxTokens: 8192,
+      responseSchema: MEDICAL_RESEARCH_SCHEMA
     });
     debug("MEDICAL", "Medical research completed successfully", { tokens: res.usage.total_tokens, factsCount: res.data.key_facts?.length });
     return { success: true, data: res.data, usage: res.usage };
@@ -117,39 +155,16 @@ export async function competitorResearchAgent(keyword: string): Promise<AgentRes
 
 Context: Zappy Health competes with Hims, Ro, Noom, WeightWatchers, and traditional healthcare content from WebMD, Healthline, Mayo Clinic.
 
-Analyze what top-ranking content probably looks like:
-1. What angles are they taking?
-2. What are their strengths?
-3. What are their weaknesses or gaps?
-4. What questions remain unanswered?
-5. What unique angle could Zappy take?
+Analyze top articles, angles, gaps, unanswered questions, and unique angles.
 
-Zappy's differentiators:
-- Founded by an oncologist with 20+ years experience
-- Direct telehealth access (not just information)
-- Clinical expertise + practical guidance
-
-Output JSON only:
-{
-  "top_articles": [
-    {
-      "title": "Likely competitor article title",
-      "angle": "Their approach",
-      "strengths": ["what they do well"],
-      "weaknesses": ["what they miss"],
-      "word_count": 1500
-    }
-  ],
-  "content_gaps": ["topic not well covered", ...],
-  "unique_angles": ["angle Zappy could own", ...],
-  "questions_unanswered": ["question competitors don't answer well", ...]
-}`;
+Output JSON only matching the requested schema.`;
 
   try {
     debug("COMPETITOR", "Calling AI for competitor analysis...");
     const res = await callGeminiJSON<CompetitorResearch>(prompt, {
       systemPrompt: COMPETITOR_SYSTEM,
-      maxTokens: 6000
+      maxTokens: 6000,
+      responseSchema: COMPETITOR_RESEARCH_SCHEMA
     });
     debug("COMPETITOR", "Competitor research completed successfully", { tokens: res.usage.total_tokens, gapsCount: res.data.content_gaps?.length });
     return { success: true, data: res.data, usage: res.usage };
