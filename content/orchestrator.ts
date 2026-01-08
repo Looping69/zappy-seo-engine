@@ -33,6 +33,7 @@ export class ContentOrchestrator {
     };
     console.log(`\n${'='.repeat(60)}`);
     console.log(`[ORCHESTRATOR] Starting pipeline for keyword: "${keyword.keyword}"`);
+    console.log(`[ORCHESTRATOR] Content direction: ${keyword.direction || 'balanced'}`);
     console.log(`${'='.repeat(60)}\n`);
   }
 

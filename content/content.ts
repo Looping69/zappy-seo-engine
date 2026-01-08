@@ -13,6 +13,7 @@ const db = new SQLDatabase("content", {
 export interface GenerateParams {
     keywordId: number;
     keyword: string;
+    direction: string;
 }
 
 export interface KeywordIdParams {
@@ -103,7 +104,7 @@ export const startGeneration = api(
         const kw = await keywords.getById({ id: keywordId });
 
         // Publish to background processing queue
-        await generateTopic.publish({ keywordId, keyword: kw.keyword });
+        await generateTopic.publish({ keywordId, keyword: kw.keyword, direction: kw.direction || 'balanced' });
 
         // Update status
         await keywords.updateStatus({ id: keywordId, status: "generating" });
@@ -119,7 +120,7 @@ export const startBatch = api(
         const { keywords: queued } = await keywords.getQueued();
 
         for (const kw of queued) {
-            await generateTopic.publish({ keywordId: kw.id, keyword: kw.keyword });
+            await generateTopic.publish({ keywordId: kw.id, keyword: kw.keyword, direction: kw.direction || 'balanced' });
             await keywords.updateStatus({ id: kw.id, status: "generating" });
         }
 
@@ -249,7 +250,7 @@ const _ = new Subscription(generateTopic, "run-content-generation", {
     // Give 10 minutes for AI operations to complete before timeout
     ackDeadline: "10m",
     handler: async (params: GenerateParams) => {
-        const { keywordId, keyword } = params;
+        const { keywordId, keyword, direction } = params;
 
         // Helper to save progress logs
         const logProgress = async (percent: number, step: string) => {
@@ -276,7 +277,7 @@ const _ = new Subscription(generateTopic, "run-content-generation", {
 
             // Create orchestrator with database logging
             const orchestrator = new ContentOrchestrator(
-                { id: keywordId, keyword },
+                { id: keywordId, keyword, direction },
                 { verbose: true, maxRevisions: 3, debugLog }
             );
 

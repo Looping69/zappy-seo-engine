@@ -5,6 +5,7 @@
 export interface Keyword {
   id: number;
   keyword: string;
+  direction?: string;
   searchVolume?: number;
   difficulty?: number;
   intent?: string;

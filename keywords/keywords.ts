@@ -14,6 +14,7 @@ export interface Keyword {
     difficulty: number;
     intent: string;
     cluster: string;
+    direction: string;
 }
 
 // Request param interfaces
@@ -36,6 +37,7 @@ export interface AddKeywordParams {
 
 export interface SeedParams {
     topic: string;
+    direction?: string;
 }
 
 // Response interfaces
@@ -52,7 +54,7 @@ export const getQueued = api(
     { expose: true, method: "GET", path: "/keywords/queued" },
     async (): Promise<KeywordsListResponse> => {
         const rows = db.query`
-            SELECT id, keyword, status, search_volume, difficulty, intent, cluster
+            SELECT id, keyword, status, search_volume, difficulty, intent, cluster, COALESCE(direction, 'balanced') as direction
             FROM keywords
             WHERE status = 'queued'
             ORDER BY priority DESC, id ASC
@@ -81,7 +83,7 @@ export const getById = api(
     { expose: true, method: "GET", path: "/keywords/:id" },
     async ({ id }: IdParams): Promise<Keyword> => {
         const row = await db.queryRow`
-            SELECT id, keyword, status, search_volume, difficulty, intent, cluster
+            SELECT id, keyword, status, search_volume, difficulty, intent, cluster, COALESCE(direction, 'balanced') as direction
             FROM keywords
             WHERE id = ${id}
         `;
@@ -108,10 +110,11 @@ export const add = api(
 export const seed = api(
     { expose: true, method: "POST", path: "/keywords/seed" },
     async (params: SeedParams): Promise<SeedResponse> => {
+        const direction = params.direction || 'balanced';
         // Simplified for bootstrap - add a sample keyword
         await db.exec`
-            INSERT INTO keywords (keyword, search_volume, difficulty, intent, cluster, status)
-            VALUES (${params.topic + ' guide'}, 1000, 50, 'informational', ${params.topic}, 'queued')
+            INSERT INTO keywords (keyword, search_volume, difficulty, intent, cluster, status, direction)
+            VALUES (${params.topic + ' guide'}, 1000, 50, 'informational', ${params.topic}, 'queued', ${direction})
         `;
         return { count: 1 };
     }
