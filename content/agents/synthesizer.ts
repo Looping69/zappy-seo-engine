@@ -43,7 +43,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: SYNTHESIZER_SYSTEM,
       maxTokens: 10000,
       responseSchema: SYNTHESIZED_RESEARCH_SCHEMA,
-      model: "gemini-1.5-flash",
+      model: "models/gemini-1.5-flash",
       heartbeat,
       agentName: "Synthesizer"
     });

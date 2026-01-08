@@ -69,7 +69,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 4000,
       responseSchema: JUDGE_DECISION_SCHEMA,
-      model: "gemini-1.5-flash",
+      model: "models/gemini-1.5-flash",
       heartbeat,
       agentName: "Judge"
     });
