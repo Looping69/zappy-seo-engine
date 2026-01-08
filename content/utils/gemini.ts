@@ -125,9 +125,13 @@ export function parseJSON<T>(text: string): T {
         let cleanedJson = jsonStr
             // Remove trailing commas before ] or }
             .replace(/,(\s*[}\]])/g, '$1')
-            // Fix unescaped newlines in strings - this is tricky, we only want to fix real newlines inside " "
-            // For markdown bodies, Gemini often puts real newlines. We should escape them or trust JSON mode.
-            // .replace(/(?<!\\)\\n/g, ' ') // This was actually breaking existing \n
+
+            // Fix unescaped newlines inside strings
+            // This finds content between double quotes and replaces literal newlines with \n
+            // The regex "((?:\\.|[^"\\])*)" matches strings correctly even with escaped quotes
+            .replace(/"((?:\\.|[^"\\])*)"/g, (match, group) => {
+                return '"' + group.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
+            })
 
             // Remove control characters except tab and newline
             .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ')

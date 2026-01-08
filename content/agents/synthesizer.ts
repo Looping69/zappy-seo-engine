@@ -56,7 +56,7 @@ Output JSON only:
   try {
     const res = await callGeminiJSON<SynthesizedResearch>(prompt, {
       systemPrompt: SYNTHESIZER_SYSTEM,
-      maxTokens: 4000
+      maxTokens: 10000
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

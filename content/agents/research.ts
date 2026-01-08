@@ -41,7 +41,10 @@ Output JSON only:
 
   try {
     debug("SEO", "Calling AI for SEO analysis...");
-    const res = await callGeminiJSON<SEOResearch>(prompt, { systemPrompt: SEO_SYSTEM });
+    const res = await callGeminiJSON<SEOResearch>(prompt, {
+      systemPrompt: SEO_SYSTEM,
+      maxTokens: 4000
+    });
     debug("SEO", "SEO research completed successfully", { tokens: res.usage.total_tokens, intent: res.data.search_intent });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -89,7 +92,7 @@ Output JSON only:
     debug("MEDICAL", "Calling AI for medical research...");
     const res = await callGeminiJSON<MedicalResearch>(prompt, {
       systemPrompt: MEDICAL_SYSTEM,
-      maxTokens: 3000
+      maxTokens: 8192
     });
     debug("MEDICAL", "Medical research completed successfully", { tokens: res.usage.total_tokens, factsCount: res.data.key_facts?.length });
     return { success: true, data: res.data, usage: res.usage };
@@ -144,7 +147,10 @@ Output JSON only:
 
   try {
     debug("COMPETITOR", "Calling AI for competitor analysis...");
-    const res = await callGeminiJSON<CompetitorResearch>(prompt, { systemPrompt: COMPETITOR_SYSTEM });
+    const res = await callGeminiJSON<CompetitorResearch>(prompt, {
+      systemPrompt: COMPETITOR_SYSTEM,
+      maxTokens: 6000
+    });
     debug("COMPETITOR", "Competitor research completed successfully", { tokens: res.usage.total_tokens, gapsCount: res.data.content_gaps?.length });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
