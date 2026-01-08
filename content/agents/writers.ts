@@ -1,5 +1,6 @@
 import { callSmartAIJSON } from "../utils/ai.js";
 import type { SynthesizedResearch, ArticleDraft, AgentResult, HeartbeatFn } from "../types.js";
+import { ARTICLE_SCHEMA } from "../schemas.js";
 
 // ============================================================================
 // WRITER PERSONAS - Different angles/approaches
@@ -55,22 +56,6 @@ YOUR ANGLE: Innovative & Modern Perspectives
 Focus on cutting-edge treatments, lifestyle integration, and the future of wait-less care.
 Target: Tech-savvy readers, early adopters, and those looking for more than "standard" advice.
 Tone: Forward-thinking, energetic, and optimistic health expert.`
-};
-
-const ARTICLE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    angle: { type: "STRING" },
-    title: { type: "STRING" },
-    meta_description: { type: "STRING" },
-    slug: { type: "STRING" },
-    body: { type: "STRING" },
-    sources_cited: {
-      type: "ARRAY",
-      items: { type: "STRING" }
-    }
-  },
-  required: ["angle", "title", "meta_description", "slug", "body"]
 };
 
 async function writeArticle(

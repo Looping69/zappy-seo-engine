@@ -7,24 +7,11 @@ import type {
   AgentResult,
   HeartbeatFn
 } from "../types.js";
+import { SYNTHESIZED_RESEARCH_SCHEMA } from "../schemas.js";
 
 const SYNTHESIZER_SYSTEM = `You are a content strategist who synthesizes multiple research perspectives into a unified content brief.
 You balance SEO requirements, medical accuracy, and competitive differentiation.
 You create clear, actionable briefs that writers can execute.`;
-
-const SYNTHESIZED_RESEARCH_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    primary_angle: { type: "STRING" },
-    target_audience: { type: "STRING" },
-    key_questions: { type: "ARRAY", items: { type: "STRING" } },
-    must_include: { type: "ARRAY", items: { type: "STRING" } },
-    differentiation: { type: "STRING" },
-    structure: { type: "ARRAY", items: { type: "STRING" } },
-    word_count: { type: "INTEGER" }
-  },
-  required: ["primary_angle", "target_audience", "key_questions", "must_include", "differentiation", "structure", "word_count"]
-};
 
 export async function synthesizerAgent(
   keyword: string,
@@ -56,6 +43,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: SYNTHESIZER_SYSTEM,
       maxTokens: 10000,
       responseSchema: SYNTHESIZED_RESEARCH_SCHEMA,
+      model: "gemini-1.5-flash",
       heartbeat,
       agentName: "Synthesizer"
     });

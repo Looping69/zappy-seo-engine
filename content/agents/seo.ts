@@ -1,34 +1,10 @@
 import { callSmartAIJSON } from "../utils/ai.js";
 import type { ArticleDraft, FinalArticle, SEOResearch, AgentResult, HeartbeatFn } from "../types.js";
+import { SEO_FINAL_SCHEMA } from "../schemas.js";
 
 const SEO_FINALIZER_SYSTEM = `You are an SEO specialist finalizing content for publication.
 You optimize meta tags, add internal linking opportunities, and generate schema markup.
 You make surgical improvements without changing the medical content.`;
-
-const SEO_FINAL_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    title: { type: "STRING" },
-    meta_description: { type: "STRING" },
-    slug: { type: "STRING" },
-    body: { type: "STRING" },
-    sources: { type: "ARRAY", items: { type: "STRING" } },
-    internal_links: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          anchor: { type: "STRING" },
-          slug: { type: "STRING" }
-        },
-        required: ["anchor", "slug"]
-      }
-    },
-    quality_score: { type: "NUMBER" },
-    iterations: { type: "INTEGER" }
-  },
-  required: ["title", "meta_description", "slug", "body"]
-};
 
 export async function seoFinalizerAgent(
   draft: ArticleDraft,
@@ -98,6 +74,7 @@ Output JSON only:
       systemPrompt: SEO_FINALIZER_SYSTEM,
       maxTokens: 32000,
       responseSchema: SEO_FINAL_SCHEMA,
+      model: "gemini-1.5-flash",
       heartbeat,
       agentName: "SEO-Finalizer"
     });

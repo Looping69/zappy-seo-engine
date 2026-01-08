@@ -1,5 +1,6 @@
 import { callSmartAIJSON } from "../utils/ai.js";
 import type { ArticleDraft, MedicalCritique, EditorialCritique, AgentResult, HeartbeatFn } from "../types.js";
+import { MEDICAL_CRITIQUE_SCHEMA, EDITORIAL_CRITIQUE_SCHEMA } from "../schemas.js";
 
 // ============================================================================
 // MEDICAL REVIEWER AGENT
@@ -16,31 +17,6 @@ CRITICAL FLAGS:
 - Overstated benefits without evidence
 - Claims that could delay proper medical care
 - Missing "consult your provider" where needed`;
-
-const MEDICAL_CRITIQUE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    claims_found: { type: "INTEGER" },
-    claims_verified: { type: "INTEGER" },
-    flagged_claims: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          claim: { type: "STRING" },
-          issue: { type: "STRING" },
-          severity: { type: "STRING" }
-        },
-        required: ["claim", "issue", "severity"]
-      }
-    },
-    missing_disclaimers: { type: "ARRAY", items: { type: "STRING" } },
-    overall_accuracy: { type: "NUMBER" },
-    approved: { type: "BOOLEAN" },
-    revision_required: { type: "ARRAY", items: { type: "STRING" } }
-  },
-  required: ["claims_found", "claims_verified", "overall_accuracy", "approved", "revision_required"]
-};
 
 export async function medicalReviewerAgent(draft: ArticleDraft, heartbeat?: HeartbeatFn): Promise<AgentResult<MedicalCritique>> {
   const prompt = `Review this article for medical accuracy.
@@ -84,84 +60,6 @@ You give specific, actionable feedback - not vague critiques.
 You understand that medical content must be accurate, but it also must be readable and helpful.
 
 VOICE TARGET: A knowledgeable physician explaining to a patient - warm, clear, authoritative but not intimidating.`;
-
-const EDITORIAL_CRITIQUE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    scores: {
-      type: "OBJECT",
-      properties: {
-        clarity: {
-          type: "OBJECT",
-          properties: {
-            dimension: { type: "STRING" },
-            score: { type: "NUMBER" },
-            feedback: { type: "STRING" },
-            must_fix: { type: "BOOLEAN" }
-          },
-          required: ["dimension", "score", "feedback", "must_fix"]
-        },
-        voice: {
-          type: "OBJECT",
-          properties: {
-            dimension: { type: "STRING" },
-            score: { type: "NUMBER" },
-            feedback: { type: "STRING" },
-            must_fix: { type: "BOOLEAN" }
-          },
-          required: ["dimension", "score", "feedback", "must_fix"]
-        },
-        structure: {
-          type: "OBJECT",
-          properties: {
-            dimension: { type: "STRING" },
-            score: { type: "NUMBER" },
-            feedback: { type: "STRING" },
-            must_fix: { type: "BOOLEAN" }
-          },
-          required: ["dimension", "score", "feedback", "must_fix"]
-        },
-        engagement: {
-          type: "OBJECT",
-          properties: {
-            dimension: { type: "STRING" },
-            score: { type: "NUMBER" },
-            feedback: { type: "STRING" },
-            must_fix: { type: "BOOLEAN" }
-          },
-          required: ["dimension", "score", "feedback", "must_fix"]
-        },
-        seo: {
-          type: "OBJECT",
-          properties: {
-            dimension: { type: "STRING" },
-            score: { type: "NUMBER" },
-            feedback: { type: "STRING" },
-            must_fix: { type: "BOOLEAN" }
-          },
-          required: ["dimension", "score", "feedback", "must_fix"]
-        }
-      },
-      required: ["clarity", "voice", "structure", "engagement", "seo"]
-    },
-    overall_score: { type: "NUMBER" },
-    approved: { type: "BOOLEAN" },
-    revision_required: { type: "ARRAY", items: { type: "STRING" } },
-    specific_edits: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          location: { type: "STRING" },
-          current: { type: "STRING" },
-          suggested: { type: "STRING" }
-        },
-        required: ["location", "current", "suggested"]
-      }
-    }
-  },
-  required: ["scores", "overall_score", "approved", "revision_required"]
-};
 
 export async function editorialReviewerAgent(draft: ArticleDraft, heartbeat?: HeartbeatFn): Promise<AgentResult<EditorialCritique>> {
   const prompt = `Review this article for editorial quality.

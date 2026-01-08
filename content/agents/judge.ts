@@ -1,10 +1,11 @@
 import { callSmartAIJSON } from "../utils/ai.js";
 import type { ArticleDraft, SynthesizedResearch, AgentResult, HeartbeatFn } from "../types.js";
+import { JUDGE_DECISION_SCHEMA, ARTICLE_SCHEMA } from "../schemas.js";
 
 const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
 You can identify what makes content excellent: clarity, accuracy, engagement, SEO strength.
-You're decisive - you pick winners and explain why.
-You can also synthesize: take the best elements from multiple drafts to create something better.`;
+You're decisive - you pick winners and explain why briefly.
+IMPORTANT: Keep ALL your responses CONCISE. Reasoning under 200 chars. Strengths/weaknesses under 50 chars each.`;
 
 interface JudgeDecision {
   winner: number;
@@ -21,54 +22,6 @@ interface JudgeDecision {
     element: string;
   }[];
 }
-
-const JUDGE_DECISION_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    winner: { type: "INTEGER" },
-    reasoning: { type: "STRING" },
-    scores: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          draft_index: { type: "INTEGER" },
-          overall: { type: "NUMBER" },
-          strengths: { type: "ARRAY", items: { type: "STRING" } },
-          weaknesses: { type: "ARRAY", items: { type: "STRING" } }
-        },
-        required: ["draft_index", "overall", "strengths", "weaknesses"]
-      }
-    },
-    synthesis_opportunity: { type: "BOOLEAN" },
-    elements_to_combine: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          from_draft: { type: "INTEGER" },
-          element: { type: "STRING" }
-        },
-        required: ["from_draft", "element"]
-      }
-    }
-  },
-  required: ["winner", "reasoning", "scores", "synthesis_opportunity"]
-};
-
-// Re-use ARTICLE_SCHEMA logic via a shared type or just redefine it here for the synthesis step
-const SYNTHESIS_ARTICLE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    angle: { type: "STRING" },
-    title: { type: "STRING" },
-    meta_description: { type: "STRING" },
-    slug: { type: "STRING" },
-    body: { type: "STRING" },
-    sources_cited: { type: "ARRAY", items: { type: "STRING" } }
-  },
-  required: ["angle", "title", "meta_description", "slug", "body"]
-};
 
 export async function judgeAgent(
   drafts: ArticleDraft[],
@@ -101,7 +54,13 @@ Must include: ${research.must_include.join(", ")}
 
 ${draftDescriptions}
 
-Pick a winner (0-indexed). Note if combining elements would be better.
+Pick a winner (0-indexed).
+
+IMPORTANT JSON FORMATTING RULES:
+- "reasoning": Keep under 200 characters, NO QUOTES in the text
+- "strengths" and "weaknesses": Max 3 items each, each under 50 characters, NO QUOTES
+- "elements_to_combine": Max 3 items, "element" under 100 characters
+- Use single quotes or apostrophes if needed, NEVER double quotes inside strings
 
 Output JSON only matching the requested schema.`;
 
@@ -110,6 +69,7 @@ Output JSON only matching the requested schema.`;
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 4000,
       responseSchema: JUDGE_DECISION_SCHEMA,
+      model: "gemini-1.5-flash",
       heartbeat,
       agentName: "Judge"
     });
@@ -167,7 +127,7 @@ Output JSON only matching the requested schema.`;
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 8192,
-      responseSchema: SYNTHESIS_ARTICLE_SCHEMA,
+      responseSchema: ARTICLE_SCHEMA,
       heartbeat,
       agentName: "Judge-Synthesis"
     });

@@ -229,19 +229,34 @@ export function parseJSON<T>(text: string): T {
 
 /**
  * JSON-structured generation with Gemini
+ * Includes retry logic for JSON parse failures
  */
 export async function callGeminiJSON<T>(
     prompt: string,
-    options: GeminiOptions = {}
+    options: GeminiOptions = {},
+    retryCount: number = 0
 ): Promise<{ data: T; usage: { total_tokens: number } }> {
-    // Stronger JSON instructions
-    const jsonPrompt = `${prompt}
+    const maxRetries = 2;
+
+    // Stronger JSON instructions on retries
+    const jsonInstructions = retryCount > 0
+        ? `
+
+CRITICAL JSON FORMATTING RULES (YOU FAILED LAST TIME - BE MORE CAREFUL):
+1. Output ONLY valid JSON - no markdown, no code blocks
+2. ESCAPE ALL QUOTES inside strings using \\"
+3. Keep ALL string values SHORT - under 300 characters
+4. No line breaks inside strings - use \\n instead
+5. Verify your JSON is valid before outputting`
+        : `
 
 CRITICAL INSTRUCTIONS:
 1. Output ONLY valid JSON
-2. Escape all special characters in strings (especially newlines and backslashes)
-3. Do NOT include unescaped double quotes inside of string values. If you need to use a quote, use \\\" instead.
-4. Ensure the response is a complete, valid JSON object`;
+2. Escape all special characters (use \\" for quotes, \\n for newlines)
+3. Keep string values concise
+4. Ensure response is complete, valid JSON`;
+
+    const jsonPrompt = `${prompt}${jsonInstructions}`;
 
     const res = await callGemini(jsonPrompt, { ...options, jsonMode: true });
 
@@ -251,8 +266,16 @@ CRITICAL INSTRUCTIONS:
     } catch (error) {
         debug("callGeminiJSON failed to parse response", {
             error: String(error),
-            responsePreview: res.text.substring(0, 1000)
+            responsePreview: res.text.substring(0, 1000),
+            retryCount
         });
+
+        // Retry once with stronger instructions
+        if (retryCount < maxRetries) {
+            debug(`Retrying with stricter JSON instructions (attempt ${retryCount + 2}/${maxRetries + 1})...`);
+            return callGeminiJSON<T>(prompt, options, retryCount + 1);
+        }
+
         throw error;
     }
 }

@@ -11,6 +11,7 @@ interface SmartAIOptions {
     maxTokens?: number;
     temperature?: number;
     responseSchema?: any;
+    model?: string;
     // Heartbeat callback to signal progress during long AI operations
     heartbeat?: (agentName: string, status: string) => Promise<void>;
     agentName?: string;
@@ -33,7 +34,7 @@ export async function callSmartAIJSON<T>(
     options: SmartAIOptions = {}
 ): Promise<{ data: T; usage: { total_tokens: number }; provider: "claude" | "gemini" }> {
 
-    const { heartbeat, agentName, ...restOptions } = options;
+    const { heartbeat, agentName, model, ...restOptions } = options;
 
     // GEMINI-ONLY MODE: Skip Claude entirely
     if (GEMINI_ONLY_MODE) {
@@ -41,6 +42,7 @@ export async function callSmartAIJSON<T>(
         const res = await callGeminiJSON<T>(prompt, {
             ...restOptions,
             responseSchema: options.responseSchema,
+            model,
             heartbeat,
             agentName
         });
@@ -64,6 +66,7 @@ export async function callSmartAIJSON<T>(
             const res = await callGeminiJSON<T>(prompt, {
                 ...restOptions,
                 responseSchema: options.responseSchema,
+                model,
                 heartbeat,
                 agentName
             });
