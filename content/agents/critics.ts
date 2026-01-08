@@ -1,4 +1,4 @@
-import { callClaudeJSON } from "../utils/claude.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type { ArticleDraft, MedicalCritique, EditorialCritique, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -52,7 +52,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<MedicalCritique>(prompt, {
+    const res = await callGeminiJSON<MedicalCritique>(prompt, {
       systemPrompt: MEDICAL_REVIEWER_SYSTEM,
       maxTokens: 2000
     });
@@ -113,9 +113,9 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<EditorialCritique>(prompt, {
+    const res = await callGeminiJSON<EditorialCritique>(prompt, {
       systemPrompt: EDITORIAL_REVIEWER_SYSTEM,
-      maxTokens: 2500
+      maxTokens: 3000
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

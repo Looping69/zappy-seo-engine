@@ -1,4 +1,4 @@
-import { callClaudeJSON } from "../utils/claude.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type { SynthesizedResearch, ArticleDraft, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -88,9 +88,9 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<ArticleDraft>(prompt, {
+    const res = await callGeminiJSON<ArticleDraft>(prompt, {
       systemPrompt: WRITER_ANGLES[angle],
-      maxTokens: 8000
+      maxTokens: 8192
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
@@ -154,9 +154,9 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<ArticleDraft>(prompt, {
+    const res = await callGeminiJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
-      maxTokens: 8000
+      maxTokens: 8192
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

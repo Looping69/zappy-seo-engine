@@ -1,4 +1,4 @@
-import { callClaudeJSON } from "../utils/claude.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type { ArticleDraft, FinalArticle, SEOResearch, AgentResult } from "../types.js";
 
 const SEO_FINALIZER_SYSTEM = `You are an SEO specialist finalizing content for publication.
@@ -68,9 +68,9 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<FinalArticle>(prompt, {
+    const res = await callGeminiJSON<FinalArticle>(prompt, {
       systemPrompt: SEO_FINALIZER_SYSTEM,
-      maxTokens: 8000
+      maxTokens: 8192
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {

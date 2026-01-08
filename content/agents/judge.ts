@@ -1,4 +1,4 @@
-import { callClaudeJSON } from "../utils/claude.js";
+import { callGeminiJSON } from "../utils/gemini.js";
 import type { ArticleDraft, SynthesizedResearch, AgentResult } from "../types.js";
 
 const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
@@ -72,9 +72,9 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<JudgeDecision>(prompt, {
+    const res = await callGeminiJSON<JudgeDecision>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
-      maxTokens: 2000
+      maxTokens: 4000
     });
 
     let totalTokens = res.usage.total_tokens;
@@ -135,9 +135,9 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callClaudeJSON<ArticleDraft>(prompt, {
+    const res = await callGeminiJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
-      maxTokens: 8000
+      maxTokens: 8192
     });
     return { success: true, data: res.data, usage: res.usage };
   } catch (error) {
