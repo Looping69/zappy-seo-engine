@@ -52,7 +52,7 @@ export async function callGemini(
         systemPrompt,
         maxTokens = 4000,
         temperature = 0.7,
-        model = "gemini-2.0-flash",
+        model = "gemini-2.5-flash",
         jsonMode = false
     } = options;
 

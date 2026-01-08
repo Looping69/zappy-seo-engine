@@ -1,4 +1,4 @@
-import { callGeminiJSON } from "../utils/gemini.js";
+import { callSmartAIJSON } from "../utils/ai.js";
 import type { ArticleDraft, MedicalCritique, EditorialCritique, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -52,7 +52,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<MedicalCritique>(prompt, {
+    const res = await callSmartAIJSON<MedicalCritique>(prompt, {
       systemPrompt: MEDICAL_REVIEWER_SYSTEM,
       maxTokens: 2000
     });
@@ -113,7 +113,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<EditorialCritique>(prompt, {
+    const res = await callSmartAIJSON<EditorialCritique>(prompt, {
       systemPrompt: EDITORIAL_REVIEWER_SYSTEM,
       maxTokens: 3000
     });

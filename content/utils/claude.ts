@@ -53,7 +53,7 @@ export async function callClaude(
   try {
     debug("Making API request to Claude...");
     const response = await getClient().messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-3-7-sonnet-20250219",
       max_tokens: maxTokens,
       messages,
       ...(systemPrompt && { system: systemPrompt }),

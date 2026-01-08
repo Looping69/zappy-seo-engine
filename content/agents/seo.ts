@@ -1,4 +1,4 @@
-import { callGeminiJSON } from "../utils/gemini.js";
+import { callSmartAIJSON } from "../utils/ai.js";
 import type { ArticleDraft, FinalArticle, SEOResearch, AgentResult } from "../types.js";
 
 const SEO_FINALIZER_SYSTEM = `You are an SEO specialist finalizing content for publication.
@@ -68,7 +68,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<FinalArticle>(prompt, {
+    const res = await callSmartAIJSON<FinalArticle>(prompt, {
       systemPrompt: SEO_FINALIZER_SYSTEM,
       maxTokens: 8192
     });

@@ -1,83 +1,44 @@
-import { callClaudeJSON, callClaude } from "./claude.js";
-import { callGeminiJSON, callGemini } from "./gemini.js";
+import { callClaudeJSON } from "./claude.js";
+import { callGeminiJSON } from "./gemini.js";
 
 // Debug logging helper
 function debug(message: string, data?: unknown) {
-    console.log(`[AI-DEBUG] ${new Date().toISOString()} | ${message}`, data ? JSON.stringify(data, null, 2) : "");
+    console.log(`[SMART-AI] ${new Date().toISOString()} | ${message}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
+interface SmartAIOptions {
+    systemPrompt?: string;
+    maxTokens?: number;
+    temperature?: number;
 }
 
 /**
- * Unified AI caller that prioritizes Claude but falls back to Gemini
- * if the Anthropic key is missing or a placeholder.
+ * Smart AI caller that prioritizes Claude but falls back to Gemini
+ * if Claude fails due to credit exhaustion (400) or rate limits (429).
  */
-function isAnthropicMissing(): boolean {
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    // Key is missing if: not set, empty, or contains placeholder text
-    const missing = !anthropicKey ||
-        anthropicKey.trim() === "" ||
-        anthropicKey.includes("...") ||
-        anthropicKey === "your_key" ||
-        anthropicKey === "YOUR_ANTHROPIC_API_KEY_HERE";
-    debug(`Checking Anthropic key: ${missing ? "MISSING/PLACEHOLDER" : "PRESENT"} (length: ${anthropicKey?.length || 0})`);
-    return missing;
-}
-
-export interface AIUsage {
-    total_tokens: number;
-}
-
-export interface AIResult<T = string> {
-    data: T;
-    usage: AIUsage;
-}
-
-export async function callAI(
+export async function callSmartAIJSON<T>(
     prompt: string,
-    options: { systemPrompt?: string; maxTokens?: number; temperature?: number } = {}
-): Promise<AIResult<string>> {
-    const useGemini = isAnthropicMissing() && process.env.GEMINI_API_KEY;
-    debug(`callAI: Using ${useGemini ? "GEMINI" : "CLAUDE"}`, { promptLength: prompt.length, options });
-
+    options: SmartAIOptions = {}
+): Promise<{ data: T; usage: { total_tokens: number }; provider: "claude" | "gemini" }> {
     try {
-        if (useGemini) {
-            debug("Calling Gemini...");
-            const res = await callGemini(prompt, options);
-            debug("Gemini response received", { tokens: res.usage.total_tokens, textLength: res.text.length });
-            return { data: res.text, usage: res.usage };
-        }
-
-        debug("Calling Claude...");
-        const res = await callClaude(prompt, options);
-        debug("Claude response received", { tokens: res.usage.total_tokens, textLength: res.text.length });
-        return { data: res.text, usage: res.usage };
-    } catch (error) {
-        debug("ERROR in callAI", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
-        throw error;
-    }
-}
-
-export async function callAIJSON<T>(
-    prompt: string,
-    options: { systemPrompt?: string; maxTokens?: number; temperature?: number } = {}
-): Promise<AIResult<T>> {
-    const useGemini = isAnthropicMissing() && process.env.GEMINI_API_KEY;
-    debug(`callAIJSON: Using ${useGemini ? "GEMINI" : "CLAUDE"}`, { promptLength: prompt.length });
-
-    try {
-        if (useGemini) {
-            debug("Calling GeminiJSON...");
-            const res = await callGeminiJSON<T>(prompt, options);
-            debug("GeminiJSON response received", { tokens: res.usage.total_tokens });
-            return res;
-        }
-
-        debug("Calling ClaudeJSON...");
+        debug("Attempting call with Claude...");
         const res = await callClaudeJSON<T>(prompt, options);
-        debug("ClaudeJSON response received", { tokens: res.usage.total_tokens });
-        return res;
+        debug("Claude call successful");
+        return { ...res, provider: "claude" };
     } catch (error) {
-        debug("ERROR in callAIJSON", { error: String(error), stack: error instanceof Error ? error.stack : undefined });
+        const errorStr = String(error);
+        const isCreditError = errorStr.includes("400") && errorStr.includes("credit balance is too low");
+        const isRateLimitError = errorStr.includes("429");
+
+        if (isCreditError || isRateLimitError) {
+            debug(`Claude failed (${isCreditError ? "credits" : "rate limit"}). Falling back to Gemini...`, { error: errorStr });
+            const res = await callGeminiJSON<T>(prompt, options);
+            debug("Gemini fallback successful");
+            return { ...res, provider: "gemini" };
+        }
+
+        // Rethrow other errors
+        debug("Claude failed with non-fallback error", { error: errorStr });
         throw error;
     }
 }
-

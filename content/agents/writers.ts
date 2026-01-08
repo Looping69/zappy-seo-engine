@@ -1,4 +1,4 @@
-import { callGeminiJSON } from "../utils/gemini.js";
+import { callSmartAIJSON } from "../utils/ai.js";
 import type { SynthesizedResearch, ArticleDraft, AgentResult } from "../types.js";
 
 // ============================================================================
@@ -88,7 +88,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<ArticleDraft>(prompt, {
+    const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: WRITER_ANGLES[angle],
       maxTokens: 8192
     });
@@ -154,7 +154,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<ArticleDraft>(prompt, {
+    const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
       maxTokens: 8192
     });

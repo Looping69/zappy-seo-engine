@@ -1,4 +1,4 @@
-import { callGeminiJSON } from "../utils/gemini.js";
+import { callSmartAIJSON } from "../utils/ai.js";
 import type { ArticleDraft, SynthesizedResearch, AgentResult } from "../types.js";
 
 const JUDGE_SYSTEM = `You are a senior content director who evaluates article drafts.
@@ -72,7 +72,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<JudgeDecision>(prompt, {
+    const res = await callSmartAIJSON<JudgeDecision>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 4000
     });
@@ -135,7 +135,7 @@ Output JSON only:
 }`;
 
   try {
-    const res = await callGeminiJSON<ArticleDraft>(prompt, {
+    const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: JUDGE_SYSTEM,
       maxTokens: 8192
     });
