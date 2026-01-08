@@ -209,38 +209,52 @@ export const deleteArticle = api(
 export const getStats = api(
     { expose: true, method: "GET", path: "/content/stats" },
     async (): Promise<DashboardStats> => {
-        // Get keyword stats from keywords service
-        const { keywords: allKeywords } = await keywords.list();
+        try {
+            // Get keyword stats from keywords service
+            const { keywords: allKeywords } = await keywords.list();
 
-        const stats = {
-            totalKeywords: allKeywords.length,
-            queuedKeywords: allKeywords.filter(k => k.status === "queued").length,
-            generatingKeywords: allKeywords.filter(k => k.status === "generating").length,
-            publishedKeywords: allKeywords.filter(k => k.status === "published").length,
-            errorKeywords: allKeywords.filter(k => k.status === "error").length,
-            totalContent: 0,
-            avgQualityScore: 0
-        };
+            const stats = {
+                totalKeywords: allKeywords.length,
+                queuedKeywords: allKeywords.filter(k => k.status === "queued").length,
+                generatingKeywords: allKeywords.filter(k => k.status === "generating").length,
+                publishedKeywords: allKeywords.filter(k => k.status === "published").length,
+                errorKeywords: allKeywords.filter(k => k.status === "error").length,
+                totalContent: 0,
+                avgQualityScore: 0
+            };
 
-        // Get content stats - use separate queries to avoid type issues
-        let contentCount = 0;
-        let avgScore = 0;
+            // Get content stats - use separate queries to avoid type issues
+            let contentCount = 0;
+            let avgScore = 0;
 
-        const countRows = db.query`SELECT COUNT(*) as cnt FROM content_records`;
-        for await (const row of countRows) {
-            contentCount = Number((row as { cnt: bigint }).cnt) || 0;
+            const countRows = db.query`SELECT COUNT(*) as cnt FROM content_records`;
+            for await (const row of countRows) {
+                contentCount = Number((row as { cnt: bigint }).cnt) || 0;
+            }
+
+            const avgRows = db.query`SELECT AVG(quality_score) as avg_score FROM content_records WHERE quality_score IS NOT NULL`;
+            for await (const row of avgRows) {
+                const r = row as { avg_score: string | null };
+                avgScore = r.avg_score ? parseFloat(parseFloat(r.avg_score).toFixed(1)) : 0;
+            }
+
+            stats.totalContent = contentCount;
+            stats.avgQualityScore = avgScore;
+
+            return stats;
+        } catch (error) {
+            console.error("Error fetching dashboard stats:", error);
+            // Return fallback stats to keep the UI functional
+            return {
+                totalKeywords: 0,
+                queuedKeywords: 0,
+                generatingKeywords: 0,
+                publishedKeywords: 0,
+                errorKeywords: 0,
+                totalContent: 0,
+                avgQualityScore: 0
+            };
         }
-
-        const avgRows = db.query`SELECT AVG(quality_score) as avg_score FROM content_records WHERE quality_score IS NOT NULL`;
-        for await (const row of avgRows) {
-            const r = row as { avg_score: string | null };
-            avgScore = r.avg_score ? parseFloat(parseFloat(r.avg_score).toFixed(1)) : 0;
-        }
-
-        stats.totalContent = contentCount;
-        stats.avgQualityScore = avgScore;
-
-        return stats;
     }
 );
 

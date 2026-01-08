@@ -10,11 +10,11 @@ export interface Keyword {
     id: number;
     keyword: string;
     status: string;
-    search_volume: number;
-    difficulty: number;
-    intent: string;
-    cluster: string;
-    direction: string;
+    search_volume?: number;
+    difficulty?: number;
+    intent?: string;
+    cluster?: string;
+    direction?: string;
 }
 
 // Request param interfaces
@@ -99,7 +99,7 @@ export const add = api(
         const row = await db.queryRow`
             INSERT INTO keywords (keyword, search_volume, difficulty, intent, cluster, status)
             VALUES (${params.keyword}, ${params.search_volume}, ${params.difficulty}, ${params.intent}, ${params.cluster}, 'queued')
-            RETURNING id, keyword, status, search_volume, difficulty, intent, cluster
+            RETURNING id, keyword, status, search_volume, difficulty, intent, cluster, direction
         `;
         if (!row) throw new Error("Failed to insert keyword");
         return row as Keyword;
@@ -125,7 +125,7 @@ export const list = api(
     { expose: true, method: "GET", path: "/keywords" },
     async (): Promise<KeywordsListResponse> => {
         const rows = db.query`
-            SELECT id, keyword, status, search_volume, difficulty, intent, cluster
+            SELECT id, keyword, status, search_volume, difficulty, intent, cluster, COALESCE(direction, 'balanced') as direction
             FROM keywords
             ORDER BY created_at DESC
         `;
