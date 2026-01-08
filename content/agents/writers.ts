@@ -98,7 +98,7 @@ Output JSON only matching the requested schema.`;
   try {
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: WRITER_ANGLES[angle],
-      maxTokens: 8192,
+      maxTokens: 16384,
       responseSchema: ARTICLE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
@@ -157,7 +157,7 @@ Output JSON only matching the requested schema.`;
   try {
     const res = await callSmartAIJSON<ArticleDraft>(prompt, {
       systemPrompt: REVISION_SYSTEM,
-      maxTokens: 8192,
+      maxTokens: 16384,
       responseSchema: ARTICLE_SCHEMA
     });
     return { success: true, data: res.data, usage: res.usage };
