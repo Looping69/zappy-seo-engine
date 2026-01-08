@@ -75,12 +75,23 @@ export async function judgeAgent(
   research: SynthesizedResearch
 ): Promise<AgentResult<{ selectedDraft: ArticleDraft; decision: JudgeDecision }>> {
 
+  // Defensive check: ensure we have valid drafts
+  if (!drafts || drafts.length === 0) {
+    return { success: false, error: "No drafts provided to judge agent" };
+  }
+
+  // Filter out any undefined/null drafts
+  const validDrafts = drafts.filter(d => d && d.body);
+  if (validDrafts.length === 0) {
+    return { success: false, error: "No valid drafts with body content to evaluate" };
+  }
+
   // Build draft descriptions dynamically
-  const draftDescriptions = drafts.map((draft, i) =>
-    `DRAFT ${i + 1} (${draft.angle}):\nTitle: ${draft.title}\n${draft.body.substring(0, 1500)}...`
+  const draftDescriptions = validDrafts.map((draft, i) =>
+    `DRAFT ${i + 1} (${draft.angle || 'Unknown'}):\nTitle: ${draft.title || 'Untitled'}\n${(draft.body || '').substring(0, 1500)}...`
   ).join("\n\n");
 
-  const prompt = `Evaluate these ${drafts.length} article drafts and pick the best one.
+  const prompt = `Evaluate these ${validDrafts.length} article drafts and pick the best one.
 
 ORIGINAL BRIEF:
 Keyword: targeting "${research.primary_angle}"
@@ -103,10 +114,12 @@ Output JSON only matching the requested schema.`;
     let totalTokens = res.usage.total_tokens;
     const decision = res.data;
 
-    let selectedDraft = drafts[decision.winner];
+    // Safe access with bounds check
+    const winnerIdx = Math.min(decision.winner, validDrafts.length - 1);
+    let selectedDraft = validDrafts[winnerIdx];
 
     if (decision.synthesis_opportunity && decision.elements_to_combine && decision.elements_to_combine.length > 0) {
-      const synthesisResult = await synthesizeDrafts(selectedDraft, drafts, decision.elements_to_combine);
+      const synthesisResult = await synthesizeDrafts(selectedDraft, validDrafts, decision.elements_to_combine);
       if (synthesisResult.success && synthesisResult.data) {
         selectedDraft = synthesisResult.data;
         totalTokens += synthesisResult.usage?.total_tokens || 0;
